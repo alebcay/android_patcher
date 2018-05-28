@@ -1,0 +1,35 @@
+From 7cf1e37cf7bbabebe4c81c25b9a2c2ffdb9c0fb6 Mon Sep 17 00:00:00 2001
+From: Isaac Chen <ycchen@google.com>
+Date: Tue, 12 Sep 2017 16:49:14 +0800
+Subject: [PATCH 2/2] Enable HAS_VFP_D32 for 32-bit armv8 crasher
+
+Android.bp assumed only an armv7-a-neon core needs to set HAS_VFP_D32.
+In fact, an armv8 core also has 32 double-word floating point registers
+for A32 and T32 ISAs (AArch32 or 32-bit armv8).
+
+Bug: 65568426
+Test: lunch aosp_arm64; emulator # on oc-mr1-dev; boot to home screen.
+      Check crashglue.o actually uses VFP_D16-31 for 32-bit armv8 core.
+Change-Id: I34584a27fa24a55bb4809ccd7f99a8122971df0e
+
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ debuggerd/crasher/Android.bp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/debuggerd/crasher/Android.bp b/debuggerd/crasher/Android.bp
+index f73f672fb..58a6f90e4 100644
+--- a/debuggerd/crasher/Android.bp
++++ b/debuggerd/crasher/Android.bp
+@@ -18,7 +18,7 @@ cc_defaults {
+         arm: {
+             srcs: ["arm/crashglue.S"],
+ 
+-            armv7_a_neon: {
++            neon: {
+                 asflags: ["-DHAS_VFP_D32"],
+             },
+         },
+-- 
+2.11.0
+

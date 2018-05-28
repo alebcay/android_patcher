@@ -1,0 +1,112 @@
+From e7c2adafb03cf14bf165370f5dc5ad500042cda4 Mon Sep 17 00:00:00 2001
+From: Sebastian Pop <s.pop@samsung.com>
+Date: Tue, 28 Nov 2017 16:36:48 -0600
+Subject: [PATCH 1/2] use std::hash instead of hashing byte by byte
+
+This patch uses libcxx's string_view hashing.  The performance is better than the
+current implementation, and almost the same as for the hashing implementation amended
+by the patch in https://android-review.googlesource.com/404742
+
+The following experiments were conducted on a HiKey aarch64 A53.
+
+No changes:
+$ adb push out/target/product/hikey/data/benchmarktest64/ziparchive-benchmarks /data
+$ adb shell /data/ziparchive-benchmarks --benchmark_repetitions=5
+
+Benchmark                          Time           CPU Iterations
+FindEntry_no_match          82279629 ns   81759676 ns          9
+FindEntry_no_match          81648056 ns   81627431 ns          9
+FindEntry_no_match          81384074 ns   81369057 ns          9
+FindEntry_no_match          89618889 ns   82437755 ns          9
+FindEntry_no_match          81811389 ns   81785261 ns          9
+FindEntry_no_match_mean     83348407 ns   81795836 ns          9
+FindEntry_no_match_stddev    3520421 ns     394962 ns          0
+Iterate_all_files          137622000 ns  137589032 ns          5
+Iterate_all_files          139666333 ns  138409469 ns          5
+Iterate_all_files          150070000 ns  140883697 ns          5
+Iterate_all_files          138600667 ns  138540646 ns          5
+Iterate_all_files          137599833 ns  137567438 ns          5
+Iterate_all_files_mean     140711767 ns  138598056 ns          5
+Iterate_all_files_stddev     5299929 ns    1354928 ns          0
+
+$ cd system/core/libziparchive
+$ git fetch https://android.googlesource.com/platform/system/core refs/changes/42/404742/7 && git cherry-pick FETCH_HEAD
+$ mma
+$ cd -
+$ adb push out/target/product/hikey/data/benchmarktest64/ziparchive-benchmarks /data
+$ adb shell /data/ziparchive-benchmarks --benchmark_repetitions=5
+
+Benchmark                          Time           CPU Iterations
+FindEntry_no_match          53302756 ns   53291178 ns         13
+FindEntry_no_match          54314487 ns   54272272 ns         13
+FindEntry_no_match          53866923 ns   53851178 ns         13
+FindEntry_no_match          53324423 ns   53317296 ns         13
+FindEntry_no_match          53289231 ns   53289159 ns         13
+FindEntry_no_match_mean     53619564 ns   53604216 ns         13
+FindEntry_no_match_stddev     458449 ns     443527 ns          0
+Iterate_all_files          128211111 ns  112254783 ns          6
+Iterate_all_files          110695000 ns  110677726 ns          6
+Iterate_all_files          109351250 ns  109350998 ns          6
+Iterate_all_files          109367500 ns  109367796 ns          6
+Iterate_all_files          110872222 ns  110591407 ns          6
+Iterate_all_files_mean     113699417 ns  110448542 ns          6
+Iterate_all_files_stddev     8143723 ns    1194577 ns          0
+
+$ cd system/core/libziparchive
+$ git checkout HEAD~
+$ git am 0001-use-std-hash.patch
+$ mma
+$ cd -
+$ adb push out/target/product/hikey/data/benchmarktest64/ziparchive-benchmarks /data
+$ adb shell /data/ziparchive-benchmarks --benchmark_repetitions=5
+
+Benchmark                          Time           CPU Iterations
+FindEntry_no_match          55339872 ns   55195112 ns         13
+FindEntry_no_match          56232628 ns   56069924 ns         13
+FindEntry_no_match          55694103 ns   55255946 ns         13
+FindEntry_no_match          55275064 ns   55120136 ns         13
+FindEntry_no_match          54971987 ns   54944411 ns         13
+FindEntry_no_match_mean     55502731 ns   55317106 ns         13
+FindEntry_no_match_stddev     482032 ns     436766 ns          0
+Iterate_all_files          114618611 ns  114487804 ns          6
+Iterate_all_files          112552917 ns  112229801 ns          6
+Iterate_all_files          111288750 ns  111255044 ns          6
+Iterate_all_files          111291528 ns  111259045 ns          6
+Iterate_all_files          114347222 ns  113677119 ns          6
+Iterate_all_files_mean     112819806 ns  112581763 ns          6
+Iterate_all_files_stddev     1606214 ns    1454858 ns          0
+
+Change-Id: I1e3413d331bcb460ca38bc2c87e23f89b456cd2f
+
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ libziparchive/zip_archive.cc | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/libziparchive/zip_archive.cc b/libziparchive/zip_archive.cc
+index 4559b328f..5fb013e21 100644
+--- a/libziparchive/zip_archive.cc
++++ b/libziparchive/zip_archive.cc
+@@ -100,6 +100,11 @@ static uint32_t RoundUpPower2(uint32_t val) {
+ }
+ 
+ static uint32_t ComputeHash(const ZipString& name) {
++#if !defined(_WIN32)
++  return std::hash<std::string_view>{}(
++      std::string_view(reinterpret_cast<const char*>(name.name), name.name_length));
++#else
++  // Remove this code path once the windows compiler knows how to compile the above statement.
+   uint32_t hash = 0;
+   uint16_t len = name.name_length;
+   const uint8_t* str = name.name;
+@@ -109,6 +114,7 @@ static uint32_t ComputeHash(const ZipString& name) {
+   }
+ 
+   return hash;
++#endif
+ }
+ 
+ /*
+-- 
+2.11.0
+

@@ -1,0 +1,28 @@
+From 1cf7dce1b9652828df2aeff10965929f99d8b368 Mon Sep 17 00:00:00 2001
+From: Dave Kessler <activethrasher00@gmail.com>
+Date: Wed, 20 Apr 2016 19:14:05 -0400
+Subject: [PATCH 1/1] DeadZone: add missing call to TypedArray.recycle()
+
+to prevent leaks when restarting SystemUI for themes
+
+Change-Id: I72acb94602118bbe0082cece6ba2c5eff994e67a
+Signed-off-by: Alex Naidis <alex.naidis@linux.com>
+---
+ .../SystemUI/src/com/android/systemui/statusbar/policy/DeadZone.java     | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/policy/DeadZone.java b/packages/SystemUI/src/com/android/systemui/statusbar/policy/DeadZone.java
+index 06040e2b0bc..c07fabee541 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/policy/DeadZone.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/policy/DeadZone.java
+@@ -92,6 +92,7 @@ public class DeadZone extends View {
+ 
+         setFlashOnTouchCapture(context.getResources().getBoolean(R.bool.config_dead_zone_flash));
+         mStatusBar = SysUiServiceProvider.getComponent(context, StatusBar.class);
++        a.recycle();
+     }
+ 
+     static float lerp(float a, float b, float f) {
+-- 
+2.11.0
+

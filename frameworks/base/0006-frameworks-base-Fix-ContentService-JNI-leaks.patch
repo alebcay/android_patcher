@@ -1,0 +1,89 @@
+From 5a17e9b01f50870d09d64e53fd012e75137128c1 Mon Sep 17 00:00:00 2001
+From: spooja <spooja@codeaurora.org>
+Date: Mon, 13 Jul 2015 14:10:08 +0530
+Subject: [PATCH 6/6] frameworks/base: Fix ContentService JNI leaks
+
+- A list of ObserverCall(s) is created by ContentService as
+  it notifies changes to the registered content observers.
+  Clear observer after use.
+
+- If same Observer and same URI are registered, the callback
+  functions are called multiple times when data identified by
+  a given content URI changes. It makes system slow and it
+  cause ANR sometimes. And when run
+  unregisterContentObserver(), just one deleted but others
+  are remained in mObservers. So add prevent code to avoid
+  to duplicated registration of Observers
+
+CRs-Fixed: 868634
+
+Change-Id: I5906f581f4beaed04af09e5b9e3999f67d94f1fc
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ .../com/android/server/content/ContentService.java    | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/services/core/java/com/android/server/content/ContentService.java b/services/core/java/com/android/server/content/ContentService.java
+index 6e1c21eea15..d54cc82c363 100644
+--- a/services/core/java/com/android/server/content/ContentService.java
++++ b/services/core/java/com/android/server/content/ContentService.java
+@@ -71,6 +71,7 @@ import java.io.PrintWriter;
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.Comparator;
++import java.util.Iterator;
+ import java.util.List;
+ 
+ /**
+@@ -348,8 +349,6 @@ public final class ContentService extends IContentService.Stub {
+         synchronized (mRootNode) {
+             mRootNode.addObserverLocked(uri, observer, notifyForDescendants, mRootNode,
+                     uid, pid, userHandle);
+-            if (false) Log.v(TAG, "Registered observer " + observer + " at " + uri +
+-                    " with notifyForDescendants " + notifyForDescendants);
+         }
+     }
+ 
+@@ -415,8 +414,9 @@ public final class ContentService extends IContentService.Stub {
+         // This makes it so that future permission checks will be in the context of this
+         // process rather than the caller's process. We will restore this before returning.
+         long identityToken = clearCallingIdentity();
++        ArrayList<ObserverCall> calls = null;
+         try {
+-            ArrayList<ObserverCall> calls = new ArrayList<ObserverCall>();
++            calls = new ArrayList<ObserverCall>();
+             synchronized (mRootNode) {
+                 mRootNode.collectObserversLocked(uri, 0, observer, observerWantsSelfNotifications,
+                         flags, userHandle, calls);
+@@ -459,6 +459,9 @@ public final class ContentService extends IContentService.Stub {
+                 invalidateCacheLocked(userHandle, providerPackageName, uri);
+             }
+         } finally {
++            if (calls != null) {
++                calls.clear();
++            }
+             restoreCallingIdentity(identityToken);
+         }
+     }
+@@ -1363,8 +1366,18 @@ public final class ContentService extends IContentService.Stub {
+                                        int uid, int pid, int userHandle) {
+             // If this is the leaf node add the observer
+             if (index == countUriSegments(uri)) {
++                Iterator<ObserverEntry> iter = mObservers.iterator();
++                while(iter.hasNext()) {
++                    ObserverEntry next = iter.next();
++                    if(next.observer.asBinder() == observer.asBinder()) {
++                        Log.w(TAG, "Observer " + observer + " is already registered.");
++                         return;
++                    }
++                }
+                 mObservers.add(new ObserverEntry(observer, notifyForDescendants, observersLock,
+                         uid, pid, userHandle));
++                if (false) Log.v(TAG, "Registered observer " + observer + " at " + uri +
++                        " with notifyForDescendants " + notifyForDescendants);
+                 return;
+             }
+ 
+-- 
+2.11.0
+

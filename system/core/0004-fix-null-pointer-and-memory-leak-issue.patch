@@ -1,0 +1,42 @@
+From 459882353c92ec68c5c1c041b7fc1291a74787cf Mon Sep 17 00:00:00 2001
+From: Hong-Mei Li <a21834@motorola.com>
+Date: Wed, 27 Mar 2013 12:54:37 -0400
+Subject: [PATCH 1/1] fix null pointer and memory leak issue
+
+In SocketClient::quoteArg function
+1. Fix potential null pointer accessing issue
+2. Fix potential memory leak introduced by realloc fail
+
+Change-Id: Ic2ccb0eb9d28f0e81187c7862add67e117fef20b
+Signed-off-by: Hong-Mei Li <a21834@motorola.com>
+Reviewed-on: http://gerrit.pcs.mot.com/527999
+Tested-by: Jira Key <jirakey@motorola.com>
+Reviewed-by: Yi-Wei Zhao <gbjc64@motorola.com>
+Reviewed-by: Raymond Essick <ray.essick@motorola.com>
+Reviewed-by: Jeffrey Carlyle <jeff.carlyle@motorola.com>
+Reviewed-by: Christopher Fries <qcf001@motorola.com>
+SLT-Approved: Christopher Fries <qcf001@motorola.com>
+Submit-Approved: Jira Key <jirakey@motorola.com>
+(cherry picked from commit d076a0aadd8f0f6ab75a3e9befee7f591957b662)
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ libsysutils/src/SocketClient.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/libsysutils/src/SocketClient.cpp b/libsysutils/src/SocketClient.cpp
+index 971f90821..949312431 100644
+--- a/libsysutils/src/SocketClient.cpp
++++ b/libsysutils/src/SocketClient.cpp
+@@ -129,6 +129,9 @@ int SocketClient::sendCode(int code) {
+ }
+ 
+ char *SocketClient::quoteArg(const char *arg) {
++    if(arg == NULL) {
++        return NULL; // caller should check the return value
++    }
+     int len = strlen(arg);
+     char *result = (char *)malloc(len * 2 + 3);
+     char *current = result;
+-- 
+2.11.0
+

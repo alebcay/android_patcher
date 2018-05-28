@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+reset() {
+	echo -e "\e[33mResetting repo: $1\e[0m"
+	git -C "../$1"	clean -dfqx
+	git -C "../$1"	reset -q --hard
+}
+
+apply() {
+	echo -e "\e[33mApplying patch: $1/$2\e[0m"
+	git -C "../$1"	apply -v "$PWD/$1/$2"
+	echo
+}
+
+pushd `dirname "$0"` >/dev/null 2>&1
+
+reset	"frameworks/base"
+reset	"system/core"
+reset	"build/make"
+
+apply	"frameworks/base"	"0001-Scroll-modified-velocitytracker.patch"
+apply	"frameworks/base"	"0002-Frequently-used-OpenGL-ES-methods-whitelisted-for-fa.patch"
+apply	"frameworks/base"	"0003-aapt-Default-to-0-compression-ratio.patch"
+apply	"frameworks/base"	"0004-aapt-allow-opting-out-of-uncompressed-aapt.patch"
+apply	"frameworks/base"	"0005-aapt-enforce-0-compression.patch"
+apply	"frameworks/base"	"0006-frameworks-base-Fix-ContentService-JNI-leaks.patch"
+apply	"frameworks/base"	"0007-core-jni-use-O3.patch"
+apply	"frameworks/base"	"0008-DeadZone-add-missing-call-to-TypedArray.recycle.patch"
+apply	"frameworks/base"	"0009-Optimize-AbsListView-to-reduce-click-operation-laten.patch"
+
+apply 	"system/core"		"0001-use-std-hash-instead-of-hashing-byte-by-byte.patch"
+apply 	"system/core"		"0002-Enable-HAS_VFP_D32-for-32-bit-armv8-crasher.patch"
+apply 	"system/core"		"0003-Silence-spammy-logs-from-camera-blobs-AEC_PORT-and-m.patch"
+apply 	"system/core"		"0004-fix-null-pointer-and-memory-leak-issue.patch"
+apply 	"system/core"		"0005-System-Server-Force-Close.patch"
+apply	"system/core"		"0006-init-optimize-shutdown-time.patch"
+
+apply	"build/make"		"0001-core-use-0-compression-when-creating-the-target_file.patch"
+apply	"build/make"		"0002-Create-0-compression-ratio-jar-files.patch"
+
+popd >/dev/null 2>&1

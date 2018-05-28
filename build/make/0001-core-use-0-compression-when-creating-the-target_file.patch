@@ -1,0 +1,43 @@
+From fbf2a24e7ea1a653f2975e3e6b33cf78f93acc3d Mon Sep 17 00:00:00 2001
+From: Park Ju Hyung <qkrwngud825@gmail.com>
+Date: Fri, 31 Mar 2017 15:23:11 +0900
+Subject: [PATCH 1/2] core: use 0 compression when creating the target_files
+ package
+
+The zip file under $OUT/obj/PACKAGING/target_files_intermediate
+is used for final package creation,
+and it's being unzipped multiple times by releasetools.
+
+(Not to mention that it also takes an awful lot of time
+just to zip it initially.)
+
+Using 0 compression on it reduces the build time by several minutes.
+
+The final zip package is untouched by this change(remains compressed).
+
+Forward-ported to oreo-mr1.
+
+Change-Id: Ic38b470f97f1e0ebb80da9d4f7750e4ccf53e05c
+Signed-off-by: Park Ju Hyung <qkrwngud825@gmail.com>
+Signed-off-by: Alex Naidis <alex.naidis@linux.com>
+Signed-off-by: Akhil's Lazy Buildbot <jenkins@akhilnarang.me>
+---
+ core/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/core/Makefile b/core/Makefile
+index 1733b4c75..0aca81c44 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -2724,7 +2724,7 @@ endif
+ 	@# help early validation of the .zip file while uploading it.
+ 	$(hide) find $(zip_root)/META | sort >$@.list
+ 	$(hide) find $(zip_root) -path $(zip_root)/META -prune -o -print | sort >>$@.list
+-	$(hide) $(SOONG_ZIP) -d -o $@ -C $(zip_root) -l $@.list
++	$(hide) $(SOONG_ZIP) -L 0 -d -o $@ -C $(zip_root) -l $@.list
+ 
+ .PHONY: target-files-package
+ target-files-package: $(BUILT_TARGET_FILES_PACKAGE)
+-- 
+2.11.0
+

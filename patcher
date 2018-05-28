@@ -37,5 +37,7 @@ apply	"system/core"		"0006-init-optimize-shutdown-time.patch"
 
 apply	"build/make"		"0001-core-use-0-compression-when-creating-the-target_file.patch"
 apply	"build/make"		"0002-Create-0-compression-ratio-jar-files.patch"
+apply	"build/make"		"0003-Enable-GSS-garbage-collection.patch"
+apply	"build/make"		"0004-zipalign-use-Zopfli-recompress-option.patch"
 
 popd >/dev/null 2>&1

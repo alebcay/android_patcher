@@ -1,0 +1,28 @@
+From f736fe92fcf5bd6e22cb8d4818dedfb55ec23a2a Mon Sep 17 00:00:00 2001
+From: Caleb Xu <calebcenter@live.com>
+Date: Fri, 23 Jun 2017 00:13:48 -0400
+Subject: [PATCH 1/1] zipalign: use Zopfli-recompress option
+
+This feature has been in zipalign for a few years now, and offers
+roughly 5% better compression than zlib while remaining completely
+compatible with zlib decoders. Encoding (build times) may be
+negligibly increased.
+---
+ core/definitions.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/core/definitions.mk b/core/definitions.mk
+index 3b7a9c019..68e63f30c 100644
+--- a/core/definitions.mk
++++ b/core/definitions.mk
+@@ -2720,6 +2720,7 @@ $(hide) if ! $(ZIPALIGN) -c $(ZIPALIGN_PAGE_ALIGN_FLAGS) 4 $@ >/dev/null ; then
+   mv $@ $@.unaligned; \
+   $(ZIPALIGN) \
+     -f \
++    -z \
+     $(ZIPALIGN_PAGE_ALIGN_FLAGS) \
+     4 \
+     $@.unaligned $@.aligned; \
+-- 
+2.11.0
+

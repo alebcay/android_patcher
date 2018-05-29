@@ -1,0 +1,123 @@
+From e767d1a4d20c8299bc30775e4c90c0837155fe7d Mon Sep 17 00:00:00 2001
+From: Elliott Hughes <enh@google.com>
+Date: Thu, 9 Nov 2017 22:40:11 +0000
+Subject: [PATCH 16/17] Use builtins for fma/fmax/fmin/round on arm64.
+
+Bug: http://b/27829506
+Change-Id: Id243e3ba0041d5efce496f0760815e591a2c00a0
+Test: ran tests and inspected arm64 assembler
+---
+ libm/Android.bp                 | 13 +++++++++----
+ libm/arm64/fma.S                | 27 ---------------------------
+ libm/{fabs.cpp => builtins.cpp} | 14 ++++++++++++++
+ 3 files changed, 23 insertions(+), 31 deletions(-)
+ delete mode 100644 libm/arm64/fma.S
+ rename libm/{fabs.cpp => builtins.cpp} (69%)
+
+diff --git a/libm/Android.bp b/libm/Android.bp
+index e5cb02931..093d59acb 100644
+--- a/libm/Android.bp
++++ b/libm/Android.bp
+@@ -214,7 +214,7 @@ cc_library {
+         "signbit.c",
+ 
+         // Home-grown stuff.
+-        "fabs.cpp",
++        "builtins.cpp",
+     ],
+ 
+     multilib: {
+@@ -304,7 +304,6 @@ cc_library {
+             srcs: [
+                 "arm64/ceil.S",
+                 "arm64/fenv.c",
+-                "arm64/fma.S",
+                 "arm64/floor.S",
+                 "arm64/lrint.S",
+                 "arm64/rint.S",
+@@ -316,16 +315,22 @@ cc_library {
+                 "upstream-freebsd/lib/msun/src/e_sqrtf.c",
+                 "upstream-freebsd/lib/msun/src/s_ceil.c",
+                 "upstream-freebsd/lib/msun/src/s_ceilf.c",
+-                "upstream-freebsd/lib/msun/src/s_fma.c",
+-                "upstream-freebsd/lib/msun/src/s_fmaf.c",
+                 "upstream-freebsd/lib/msun/src/s_floor.c",
+                 "upstream-freebsd/lib/msun/src/s_floorf.c",
++                "upstream-freebsd/lib/msun/src/s_fma.c",
++                "upstream-freebsd/lib/msun/src/s_fmaf.c",
++                "upstream-freebsd/lib/msun/src/s_fmax.c",
++                "upstream-freebsd/lib/msun/src/s_fmaxf.c",
++                "upstream-freebsd/lib/msun/src/s_fmin.c",
++                "upstream-freebsd/lib/msun/src/s_fminf.c",
+                 "upstream-freebsd/lib/msun/src/s_llrint.c",
+                 "upstream-freebsd/lib/msun/src/s_llrintf.c",
+                 "upstream-freebsd/lib/msun/src/s_lrint.c",
+                 "upstream-freebsd/lib/msun/src/s_lrintf.c",
+                 "upstream-freebsd/lib/msun/src/s_rint.c",
+                 "upstream-freebsd/lib/msun/src/s_rintf.c",
++                "upstream-freebsd/lib/msun/src/s_round.c",
++                "upstream-freebsd/lib/msun/src/s_roundf.c",
+                 "upstream-freebsd/lib/msun/src/s_trunc.c",
+                 "upstream-freebsd/lib/msun/src/s_truncf.c",
+             ],
+diff --git a/libm/arm64/fma.S b/libm/arm64/fma.S
+deleted file mode 100644
+index 1a8a15869..000000000
+--- a/libm/arm64/fma.S
++++ /dev/null
+@@ -1,27 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#include <private/bionic_asm.h>
+-
+-ENTRY(fma)
+-  fmadd d0, d0, d1, d2
+-  ret
+-END(fma)
+-
+-ENTRY(fmaf)
+-  fmadd s0, s0, s1, s2
+-  ret
+-END(fmaf)
+diff --git a/libm/fabs.cpp b/libm/builtins.cpp
+similarity index 69%
+rename from libm/fabs.cpp
+rename to libm/builtins.cpp
+index add73fe59..2ea63055c 100644
+--- a/libm/fabs.cpp
++++ b/libm/builtins.cpp
+@@ -44,3 +44,17 @@ long double fabsl(long double x) {
+   return fabs(x);
+ }
+ #endif
++
++#if defined(__aarch64__)
++float fmaf(float x, float y, float z) { return __builtin_fmaf(x, y, z); }
++double fma(double x, double y, double z) { return __builtin_fma(x, y, z); }
++
++float fmaxf(float x, float y) { return __builtin_fmaxf(x, y); }
++double fmax(double x, double y) { return __builtin_fmax(x, y); }
++
++float fminf(float x, float y) { return __builtin_fminf(x, y); }
++double fmin(double x, double y) { return __builtin_fmin(x, y); }
++
++float roundf(float x) { return __builtin_roundf(x); }
++double round(double x) { return __builtin_round(x); }
++#endif
+-- 
+2.11.0
+

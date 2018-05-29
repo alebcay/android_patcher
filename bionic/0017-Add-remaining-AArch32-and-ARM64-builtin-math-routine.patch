@@ -1,0 +1,273 @@
+From 2774ec7b4630f876291b0c28367c1ad827485e23 Mon Sep 17 00:00:00 2001
+From: Jake Weinstein <jake@aospa.co>
+Date: Mon, 11 Dec 2017 02:50:04 -0500
+Subject: [PATCH 17/17] Add remaining AArch32 and ARM64 builtin math routines
+
+Use builtins for nearbyint on both armv8 and arm64
+
+Use builtins for ceil/floor/rint/trunc on arm64
+
+Use builtins for fma/fmax/fmin/rint/round/trunc on 32-bit ARM
+All except fma/fmaf are only used for ARMv8 targets.
+
+Change-Id: I804211c259734a97ded4f240723f6dc30b106341
+---
+ libm/Android.bp    | 23 +++++++++++++++++------
+ libm/arm64/ceil.S  | 27 ---------------------------
+ libm/arm64/floor.S | 27 ---------------------------
+ libm/arm64/rint.S  | 27 ---------------------------
+ libm/arm64/trunc.S | 27 ---------------------------
+ libm/builtins.cpp  | 36 +++++++++++++++++++++++++++++++++++-
+ 6 files changed, 52 insertions(+), 115 deletions(-)
+ delete mode 100644 libm/arm64/ceil.S
+ delete mode 100644 libm/arm64/floor.S
+ delete mode 100644 libm/arm64/rint.S
+ delete mode 100644 libm/arm64/trunc.S
+
+diff --git a/libm/Android.bp b/libm/Android.bp
+index 093d59acb..9094bf3f8 100644
+--- a/libm/Android.bp
++++ b/libm/Android.bp
+@@ -286,13 +286,27 @@ cc_library {
+             neon: {
+                 srcs: [
+                     "arm/sqrt.S",
+-                    "arm/floor.S",
+                 ],
+-
+                 exclude_srcs: [
+                     "upstream-freebsd/lib/msun/src/e_sqrt.c",
+                     "upstream-freebsd/lib/msun/src/e_sqrtf.c",
++                    "upstream-freebsd/lib/msun/src/s_ceil.c",
++                    "upstream-freebsd/lib/msun/src/s_ceilf.c",
+                     "upstream-freebsd/lib/msun/src/s_floor.c",
++                    "upstream-freebsd/lib/msun/src/s_floorf.c",
++                    "upstream-freebsd/lib/msun/src/s_fma.c",
++                    "upstream-freebsd/lib/msun/src/s_fmaf.c",
++                    "upstream-freebsd/lib/msun/src/s_fmax.c",
++                    "upstream-freebsd/lib/msun/src/s_fmaxf.c",
++                    "upstream-freebsd/lib/msun/src/s_fmin.c",
++                    "upstream-freebsd/lib/msun/src/s_fminf.c",
++                    "upstream-freebsd/lib/msun/src/s_nearbyint.c",
++                    "upstream-freebsd/lib/msun/src/s_rint.c",
++                    "upstream-freebsd/lib/msun/src/s_rintf.c",
++                    "upstream-freebsd/lib/msun/src/s_round.c",
++                    "upstream-freebsd/lib/msun/src/s_roundf.c",
++                    "upstream-freebsd/lib/msun/src/s_trunc.c",
++                    "upstream-freebsd/lib/msun/src/s_truncf.c",
+                 ],
+             },
+             instruction_set: "arm",
+@@ -302,13 +316,9 @@ cc_library {
+ 
+         arm64: {
+             srcs: [
+-                "arm64/ceil.S",
+                 "arm64/fenv.c",
+-                "arm64/floor.S",
+                 "arm64/lrint.S",
+-                "arm64/rint.S",
+                 "arm64/sqrt.S",
+-                "arm64/trunc.S",
+             ],
+             exclude_srcs: [
+                 "upstream-freebsd/lib/msun/src/e_sqrt.c",
+@@ -327,6 +337,7 @@ cc_library {
+                 "upstream-freebsd/lib/msun/src/s_llrintf.c",
+                 "upstream-freebsd/lib/msun/src/s_lrint.c",
+                 "upstream-freebsd/lib/msun/src/s_lrintf.c",
++                "upstream-freebsd/lib/msun/src/s_nearbyint.c",
+                 "upstream-freebsd/lib/msun/src/s_rint.c",
+                 "upstream-freebsd/lib/msun/src/s_rintf.c",
+                 "upstream-freebsd/lib/msun/src/s_round.c",
+diff --git a/libm/arm64/ceil.S b/libm/arm64/ceil.S
+deleted file mode 100644
+index 7217d57c5..000000000
+--- a/libm/arm64/ceil.S
++++ /dev/null
+@@ -1,27 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#include <private/bionic_asm.h>
+-
+-ENTRY(ceil)
+-  frintP d0, d0
+-  ret
+-END(ceil)
+-
+-ENTRY(ceilf)
+-  frintP s0, s0
+-  ret
+-END(ceilf)
+diff --git a/libm/arm64/floor.S b/libm/arm64/floor.S
+deleted file mode 100644
+index ca106bdd5..000000000
+--- a/libm/arm64/floor.S
++++ /dev/null
+@@ -1,27 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#include <private/bionic_asm.h>
+-
+-ENTRY(floor)
+-  frintM d0, d0
+-  ret
+-END(floor)
+-
+-ENTRY(floorf)
+-  frintM s0, s0
+-  ret
+-END(floorf)
+diff --git a/libm/arm64/rint.S b/libm/arm64/rint.S
+deleted file mode 100644
+index bf49f5b53..000000000
+--- a/libm/arm64/rint.S
++++ /dev/null
+@@ -1,27 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#include <private/bionic_asm.h>
+-
+-ENTRY(rint)
+-  frintX d0, d0
+-  ret
+-END(rint)
+-
+-ENTRY(rintf)
+-  frintX s0, s0
+-  ret
+-END(rintf)
+diff --git a/libm/arm64/trunc.S b/libm/arm64/trunc.S
+deleted file mode 100644
+index aa0d4bd02..000000000
+--- a/libm/arm64/trunc.S
++++ /dev/null
+@@ -1,27 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#include <private/bionic_asm.h>
+-
+-ENTRY(trunc)
+-  frintZ d0, d0
+-  ret
+-END(trunc)
+-
+-ENTRY(truncf)
+-  frintZ s0, s0
+-  ret
+-END(truncf)
+diff --git a/libm/builtins.cpp b/libm/builtins.cpp
+index 2ea63055c..c4b5afc7d 100644
+--- a/libm/builtins.cpp
++++ b/libm/builtins.cpp
+@@ -45,9 +45,21 @@ long double fabsl(long double x) {
+ }
+ #endif
+ 
+-#if defined(__aarch64__)
++// fma has builtin routines for ARMv7, ARMv8, and ARM64
++
++#if defined __arm__ || __aarch64__
+ float fmaf(float x, float y, float z) { return __builtin_fmaf(x, y, z); }
+ double fma(double x, double y, double z) { return __builtin_fma(x, y, z); }
++#endif
++
++// ceil/floor/fmax/fmin/rint/round/trunc has builtin routines for ARMv8 and ARM64
++
++#if defined __arm__ || __aarch64__
++float ceilf(float x) { return __builtin_ceilf(x); }
++double ceil(double x) { return __builtin_ceil(x); }
++
++float floorf(float x) { return __builtin_floorf(x); }
++double floor(double x) { return __builtin_floor(x); }
+ 
+ float fmaxf(float x, float y) { return __builtin_fmaxf(x, y); }
+ double fmax(double x, double y) { return __builtin_fmax(x, y); }
+@@ -55,6 +67,28 @@ double fmax(double x, double y) { return __builtin_fmax(x, y); }
+ float fminf(float x, float y) { return __builtin_fminf(x, y); }
+ double fmin(double x, double y) { return __builtin_fmin(x, y); }
+ 
++float nearbyintf(float x) { return __builtin_nearbyintf(x); }
++double nearbyint(double x) { return __builtin_nearbyint(x); }
++long double nearbyintl(long double x) { return __builtin_nearbyint(x); }
++
++float rintf(float x) { return __builtin_rintf(x); }
++double rint(double x) { return __builtin_rint(x); }
++
+ float roundf(float x) { return __builtin_roundf(x); }
+ double round(double x) { return __builtin_round(x); }
++
++float truncf(float x) { return __builtin_truncf(x); }
++double trunc(double x) { return __builtin_trunc(x); }
++#endif
++
++#ifdef __arm__
++long double ceill(long double x) { return __builtin_fabsl(x); }
++
++long double floorl(long double x) { return __builtin_floorl(x); }
++
++long double fmal(long double a1, long double a2, long double a3) { return __builtin_fmal(a1, a2, a3); }
++
++long double rintl(long double x) { return __builtin_rintl(x); }
++
++long double truncl(long double x) { return __builtin_truncl(x); }
+ #endif
+-- 
+2.11.0
+

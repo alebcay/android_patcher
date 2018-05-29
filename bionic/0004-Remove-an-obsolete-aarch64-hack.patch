@@ -1,0 +1,54 @@
+From aa1be4f735177e85b05192346b306daefb08c5fa Mon Sep 17 00:00:00 2001
+From: Elliott Hughes <enh@google.com>
+Date: Tue, 24 Oct 2017 14:23:47 -0700
+Subject: [PATCH 04/17] Remove an obsolete aarch64 hack.
+
+e210488e0d4082b9a0c55195c22191f29ed56bf8 in 2013 added this, which seems
+to have been a workaround for the linker at the time that was never removed.
+
+Bug: N/A
+Test: ran tests
+Change-Id: I171c3f4b7c34638ab75b8e49616b3a9c24ab3fcb
+---
+ libc/arch-common/bionic/__dso_handle.h    | 9 ++-------
+ libc/arch-common/bionic/__dso_handle_so.h | 9 +--------
+ 2 files changed, 3 insertions(+), 15 deletions(-)
+
+diff --git a/libc/arch-common/bionic/__dso_handle.h b/libc/arch-common/bionic/__dso_handle.h
+index d4bff7780..fa4006025 100644
+--- a/libc/arch-common/bionic/__dso_handle.h
++++ b/libc/arch-common/bionic/__dso_handle.h
+@@ -28,11 +28,6 @@
+ 
+ 
+ #ifndef CRT_LEGACY_WORKAROUND
+-__attribute__ ((visibility ("hidden")))
++__attribute__((__visibility__("hidden")))
+ #endif
+-#ifdef __aarch64__
+-__attribute__ ((section (".data")))
+-#else
+-__attribute__ ((section (".bss")))
+-#endif
+-void *__dso_handle = (void *) 0;
++void* __dso_handle = (void*) 0;
+diff --git a/libc/arch-common/bionic/__dso_handle_so.h b/libc/arch-common/bionic/__dso_handle_so.h
+index fab328a1c..e2c26b63b 100644
+--- a/libc/arch-common/bionic/__dso_handle_so.h
++++ b/libc/arch-common/bionic/__dso_handle_so.h
+@@ -26,11 +26,4 @@
+  * SUCH DAMAGE.
+  */
+ 
+-
+-__attribute__ ((visibility ("hidden")))
+-__attribute__ ((section (".data")))
+-#ifdef __aarch64__
+-void *__dso_handle = (void *) 0;
+-#else
+-void *__dso_handle = &__dso_handle;
+-#endif
++__attribute__((__visibility__("hidden"))) void* __dso_handle = &__dso_handle;
+-- 
+2.11.0
+

@@ -17,6 +17,7 @@ pushd `dirname "$0"` >/dev/null 2>&1
 reset	"frameworks/base"
 reset	"system/core"
 reset	"build/make"
+reset	"bionic"
 
 apply	"frameworks/base"	"0001-Scroll-modified-velocitytracker.patch"
 apply	"frameworks/base"	"0002-Frequently-used-OpenGL-ES-methods-whitelisted-for-fa.patch"
@@ -39,5 +40,23 @@ apply	"build/make"		"0001-core-use-0-compression-when-creating-the-target_file.p
 apply	"build/make"		"0002-Create-0-compression-ratio-jar-files.patch"
 apply	"build/make"		"0003-Enable-GSS-garbage-collection.patch"
 apply	"build/make"		"0004-zipalign-use-Zopfli-recompress-option.patch"
+
+apply	"bionic"		"0001-Enable-32-bit-armv8-NEON-for-libm.patch"
+apply   "bionic"                "0002-AArch64-Optimized-memcmp.patch"
+apply   "bionic"                "0003-Optimize-the-clone-system-call-on-ARM-64.patch"
+apply   "bionic"                "0004-Remove-an-obsolete-aarch64-hack.patch"
+apply   "bionic"                "0005-libc-Optimize-ARM-memcmp-by-using-NEON.patch"
+apply   "bionic"                "0006-libc-add-optimized-ARM64-strrchr-from-newlib.patch"
+apply   "bionic"                "0007-libc-import-ARM-strcmp-from-newlib.patch"
+apply   "bionic"                "0008-Find-clang-correctly.patch"
+apply   "bionic"                "0009-bionic-strip-libc-and-linker.patch"
+apply   "bionic"                "0010-AArch64-memcmp.S-optimize-for-medium-to-large-sizes.patch"
+apply   "bionic"                "0011-AArch64-strcmp.S-Improve-performance-for-misaligned-.patch"
+apply   "bionic"                "0012-aarch64-Improve-strncmp-for-mutually-misaligned-inpu.patch"
+apply   "bionic"                "0013-aarch64-strncmp-Use-lsr-instead-of-mov-lsr.patch"
+apply   "bionic"                "0014-libc-kryo-import-ARM-strlen-from-Apple-C-library.patch"
+apply   "bionic"                "0015-libc-arm-Optimise-memchr-for-NEON-enabled-processors.patch"
+apply   "bionic"                "0016-Use-builtins-for-fma-fmax-fmin-round-on-arm64.patch"
+apply   "bionic"                "0017-Add-remaining-AArch32-and-ARM64-builtin-math-routine.patch"
 
 popd >/dev/null 2>&1

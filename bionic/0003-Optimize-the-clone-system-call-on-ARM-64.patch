@@ -1,0 +1,68 @@
+From 78a76c3e72b8d1cdacc0422d91765deeac19d106 Mon Sep 17 00:00:00 2001
+From: Anton Kirilov <anton.kirilov@linaro.org>
+Date: Fri, 11 Aug 2017 15:00:19 +0100
+Subject: [PATCH 03/17] Optimize the clone() system call on ARM(64).
+
+The kernel preserves all register values except R0/X0 and SP,
+so there is no need to push arguments on the stack.
+
+Test: bionic unit tests on device
+Change-Id: I027c2f166e937fbd4448c62c0a0c706ba049e02e
+---
+ libc/arch-arm/bionic/__bionic_clone.S   | 8 +++-----
+ libc/arch-arm64/bionic/__bionic_clone.S | 8 +++-----
+ 2 files changed, 6 insertions(+), 10 deletions(-)
+
+diff --git a/libc/arch-arm/bionic/__bionic_clone.S b/libc/arch-arm/bionic/__bionic_clone.S
+index 6669b93a2..e269e2008 100644
+--- a/libc/arch-arm/bionic/__bionic_clone.S
++++ b/libc/arch-arm/bionic/__bionic_clone.S
+@@ -42,9 +42,6 @@ ENTRY_PRIVATE(__bionic_clone)
+     # load extra parameters
+     ldmfd   ip, {r4, r5, r6}
+ 
+-    # Push 'fn' and 'arg' onto the child stack.
+-    stmdb   r1!, {r5, r6}
+-
+     # Make the system call.
+     ldr     r7, =__NR_clone
+     swi     #0
+@@ -63,7 +60,8 @@ ENTRY_PRIVATE(__bionic_clone)
+ .L_bc_child:
+     # Setting lr to 0 will make the unwinder stop at __start_thread.
+     mov    lr, #0
+-    # Call __start_thread with the 'fn' and 'arg' we stored on the child stack.
+-    pop    {r0, r1}
++    # Call __start_thread with the 'fn' and 'arg' parameters.
++    mov    r0, r5
++    mov    r1, r6
+     b      __start_thread
+ END(__bionic_clone)
+diff --git a/libc/arch-arm64/bionic/__bionic_clone.S b/libc/arch-arm64/bionic/__bionic_clone.S
+index c3ff0e50c..9224e8435 100644
+--- a/libc/arch-arm64/bionic/__bionic_clone.S
++++ b/libc/arch-arm64/bionic/__bionic_clone.S
+@@ -31,9 +31,6 @@
+ // pid_t __bionic_clone(int flags, void* child_stack, pid_t* parent_tid, void* tls, pid_t* child_tid, int (*fn)(void*), void* arg);
+ 
+ ENTRY_PRIVATE(__bionic_clone)
+-    # Push 'fn' and 'arg' onto the child stack.
+-    stp     x5, x6, [x1, #-16]!
+-
+     # Make the system call.
+     mov     x8, __NR_clone
+     svc     #0
+@@ -53,7 +50,8 @@ ENTRY_PRIVATE(__bionic_clone)
+     mov     x29, #0
+     # Setting x30 to 0 will make the unwinder stop at __start_thread.
+     mov     x30, #0
+-    # Call __start_thread with the 'fn' and 'arg' we stored on the child stack.
+-    ldp     x0, x1, [sp], #16
++    # Call __start_thread with the 'fn' and 'arg' parameters.
++    mov     x0, x5
++    mov     x1, x6
+     b       __start_thread
+ END(__bionic_clone)
+-- 
+2.11.0
+

@@ -1,0 +1,55 @@
+From bb2982c24cf8ee5a8da57a09c2d7803836c385f5 Mon Sep 17 00:00:00 2001
+From: Kyle Repinski <repinski23@gmail.com>
+Date: Thu, 30 Apr 2015 02:13:56 -0500
+Subject: [PATCH 05/17] libc: Optimize ARM memcmp by using NEON.
+
+Because NEON_UNALIGNED_ACCESS has never been defined, it has gone unused.
+This change enables NEON optimization if __ARM_NEON__ is defined.
+
+Test: bionic-benchmarks-32 BM_string_memcmp
+
+On Nextbit Robin (MSM8992), here are the results
+
+Before:
+                                       iterations      ns/op
+BM_string_memcmp/8                            50M         28    0.277 GiB/s
+BM_string_memcmp/64                           50M         54    1.169 GiB/s
+BM_string_memcmp/512                           5M        444    1.151 GiB/s
+BM_string_memcmp/1024                          2M        885    1.156 GiB/s
+BM_string_memcmp/8Ki                         200k       7401    1.107 GiB/s
+BM_string_memcmp/16Ki                        200k      14469    1.132 GiB/s
+BM_string_memcmp/32Ki                        100k      28726    1.141 GiB/s
+BM_string_memcmp/64Ki                         50k      57480    1.140 GiB/s
+
+After:
+                                       iterations      ns/op
+BM_string_memcmp/8                            50M         22    0.351 GiB/s
+BM_string_memcmp/64                         1000k         17    3.688 GiB/s
+BM_string_memcmp/512                          20M        105    4.848 GiB/s
+BM_string_memcmp/1024                         10M        190    5.367 GiB/s
+BM_string_memcmp/8Ki                        1000k       1496    5.475 GiB/s
+BM_string_memcmp/16Ki                       1000k       2746    5.966 GiB/s
+BM_string_memcmp/32Ki                        500k       5481    5.978 GiB/s
+BM_string_memcmp/64Ki                        200k      10971    5.973 GiB/s
+
+Change-Id: I3c76ce7fa2796872e0171d5502b0ebd6e2893339
+---
+ libc/arch-arm/generic/bionic/memcmp.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libc/arch-arm/generic/bionic/memcmp.S b/libc/arch-arm/generic/bionic/memcmp.S
+index e648720e0..9fd72e9ea 100644
+--- a/libc/arch-arm/generic/bionic/memcmp.S
++++ b/libc/arch-arm/generic/bionic/memcmp.S
+@@ -62,7 +62,7 @@ ENTRY(memcmp)
+  * Neon optimization
+  * Comparing 32 bytes at a time
+  */
+-#if defined(__ARM_NEON__) && defined(NEON_UNALIGNED_ACCESS)
++#if defined(__ARM_NEON__)
+         subs        r2, r2, #32
+         blo         3f
+ 
+-- 
+2.11.0
+

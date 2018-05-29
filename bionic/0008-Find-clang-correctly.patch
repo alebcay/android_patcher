@@ -1,0 +1,52 @@
+From 18db1b33b035170d31c14037dcb06e78829c7195 Mon Sep 17 00:00:00 2001
+From: Paul Lawrence <paullawrence@google.com>
+Date: Fri, 17 Nov 2017 09:14:26 -0800
+Subject: [PATCH 08/17] Find clang correctly
+
+Bug: 66509804
+Test: Now runs with no changes with moves clang
+Change-Id: Ifbb2370fef79e78eb9c9da6523f8b526e65e7ed3
+---
+ libc/tools/genseccomp.py | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/libc/tools/genseccomp.py b/libc/tools/genseccomp.py
+index 79968ae31..897cb3cea 100755
+--- a/libc/tools/genseccomp.py
++++ b/libc/tools/genseccomp.py
+@@ -64,11 +64,31 @@ def get_names(syscall_files, architecture):
+   return list(set(names))
+ 
+ 
++def find_clang():
++  globals = open("../../build/soong/cc/config/global.go").readlines()
++  bases = [i for i in globals if i.lstrip().startswith("ClangDefaultBase")]
++  if len(bases) != 1:
++    raise RuntimeError("Can't find clang path in global.go")
++
++  versions = [i for i in globals if i.lstrip().startswith("ClangDefaultVersion")]
++  if len(versions) != 1:
++    raise RuntimeError("Can't find clang version in global.go")
++
++  base = bases[0].split(" ")[-1].rstrip().strip('"')
++  version = versions[0].split(" ")[-1].rstrip().strip('"')
++
++  clang_path = "../../" + base + "/linux-x86/" + version + "/bin/clang"
++  if not os.path.isfile(clang_path):
++    raise RuntimeError("Cannot find clang at " + clang_path)
++
++  return clang_path
++
++
+ def convert_names_to_NRs(names, header_dir, extra_switches):
+   # Run preprocessor over the __NR_syscall symbols, including unistd.h,
+   # to get the actual numbers
+   prefix = "__SECCOMP_"  # prefix to ensure no name collisions
+-  cpp = Popen(["../../prebuilts/clang/host/linux-x86/clang-stable/bin/clang",
++  cpp = Popen([find_clang(),
+                "-E", "-nostdinc", "-I" + header_dir, "-Ikernel/uapi/"]
+                + extra_switches
+                + ["-"],
+-- 
+2.11.0
+

@@ -1,0 +1,37 @@
+From 9c41ab4508959783e904d0839a2965abb52664da Mon Sep 17 00:00:00 2001
+From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
+Date: Thu, 15 Mar 2018 02:36:21 +0000
+Subject: [PATCH 13/17] aarch64/strncmp: Use lsr instead of mov+lsr
+
+A lsr can do what the mov and lsr did.
+
+Change-Id: I34135fe63b86b86cb603a5296442ad66667bd220
+---
+ libc/arch-arm64/generic/bionic/strncmp.S | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/libc/arch-arm64/generic/bionic/strncmp.S b/libc/arch-arm64/generic/bionic/strncmp.S
+index f8436bfd5..203b9a1e9 100644
+--- a/libc/arch-arm64/generic/bionic/strncmp.S
++++ b/libc/arch-arm64/generic/bionic/strncmp.S
+@@ -219,15 +219,13 @@ ENTRY(strncmp)
+ 	/* Align the SRC1 to a dword by doing a bytewise compare and then do
+ 	   the dword loop.  */
+ .Ltry_misaligned_words:
+-	mov     limit_wd, limit
+-	lsr     limit_wd, limit_wd, #3
++	lsr     limit_wd, limit, #3
+ 	cbz	count, .Ldo_misaligned
+ 
+ 	neg	count, count
+ 	and	count, count, #7
+ 	sub	limit, limit, count
+-	mov     limit_wd, limit
+-	lsr     limit_wd, limit_wd, #3
++	lsr     limit_wd, limit, #3
+ 
+ .Lpage_end_loop:
+ 	ldrb	data1w, [src1], #1
+-- 
+2.11.0
+

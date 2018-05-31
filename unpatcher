@@ -12,5 +12,6 @@ reset	"frameworks/base"
 reset	"system/core"
 reset	"build/make"
 reset	"bionic"
+reset	"device/motorola/sanders"
 
 popd >/dev/null 2>&1

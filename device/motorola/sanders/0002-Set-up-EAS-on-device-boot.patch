@@ -1,0 +1,82 @@
+From 9d82a1b34d7cb213d1e6b346f7d06051f99c7ed5 Mon Sep 17 00:00:00 2001
+From: Caleb Xu <calebcenter@live.com>
+Date: Sat, 26 May 2018 17:43:01 -0400
+Subject: [PATCH 2/3] Set up EAS on device boot
+
+Change-Id: Ieaaae740c774b0381d148da2712903df4c74c185
+---
+ rootdir/etc/init.qcom.rc | 40 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/rootdir/etc/init.qcom.rc b/rootdir/etc/init.qcom.rc
+index d46779e..6fce6b2 100644
+--- a/rootdir/etc/init.qcom.rc
++++ b/rootdir/etc/init.qcom.rc
+@@ -68,6 +68,11 @@ on init
+     chown root system /sys/fs/cgroup/memory/bg/tasks
+     chmod 0660 /sys/fs/cgroup/memory/bg/tasks
+ 
++    # set default schedTune value for foreground/top-app (only affects EAS)
++    write /dev/stune/foreground/schedtune.prefer_idle 1
++    write /dev/stune/top-app/schedtune.prefer_idle 1
++    write /dev/stune/top-app/schedtune.boost 10
++
+ on early-boot
+     # set RLIMIT_MEMLOCK to 64MB
+     setrlimit 8 67108864 67108864
+@@ -287,6 +292,13 @@ on boot
+     # default country code
+     setprop ro.boot.wificountrycode 00
+ 
++    # update cpusets now that processors are up
++    write /dev/cpuset/top-app/cpus 0-7
++    write /dev/cpuset/foreground/cpus 0-7
++    write /dev/cpuset/foreground/boost/cpus 0-7
++    write /dev/cpuset/background/cpus 0-7
++    write /dev/cpuset/system-background/cpus 0-7
++
+ # msm specific files that need to be created on /data
+ on post-fs-data
+     mkdir /tombstones/modem 0771 system system
+@@ -852,6 +864,33 @@ on charger
+     setprop persist.sys.usb.config mass_storage
+     write /sys/class/leds/white/trigger "battery-full"
+ 
++on enable-eas-power
++    # EAS
++    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "schedutil"
++    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "schedutil"
++
++    # Add a cpuset for the camera daemon
++    # We want all cores for camera
++    mkdir /dev/cpuset/camera-daemon
++    write /dev/cpuset/camera-daemon/cpus 0-7
++    write /dev/cpuset/camera-daemon/mems 0
++    chown system system /dev/cpuset/camera-daemon
++    chown system system /dev/cpuset/camera-daemon/tasks
++    chmod 0664 /dev/cpuset/camera-daemon/tasks
++
++   # set default schedTune value for foreground/top-app (only affects EAS)
++    write /dev/stune/foreground/schedtune.prefer_idle 1
++    write /dev/stune/top-app/schedtune.prefer_idle 1
++    write /dev/stune/top-app/schedtune.boost 1
++
++    # Update foreground and background cpusets
++    write /dev/cpuset/top-app/cpus 0-7
++    write /dev/cpuset/top-app/boost/cpus 4-7
++    write /dev/cpuset/foreground/cpus 0-6
++    write /dev/cpuset/foreground/boost/cpus "0-3,6-7"
++    write /dev/cpuset/background/cpus 0-1
++    write /dev/cpuset/system-background/cpus 0-3
++
+ on property:sys.boot_completed=1
+     write /dev/kmsg "Boot completed "
+     setprop sys.io.scheduler bfq
+@@ -975,3 +1014,4 @@ on property:sys.boot_completed=1
+     #CPE fw_name used by sound trigger HAL
+     chown media audio /sys/kernel/wcd_cpe0/fw_name
+ 
++    trigger enable-eas-power
+-- 
+2.11.0
+

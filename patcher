@@ -16,6 +16,7 @@ reset	"frameworks/base"
 reset	"system/core"
 reset	"build/make"
 reset	"bionic"
+reset	"device/motorola/sanders"
 
 apply	"frameworks/base"	"0001-Scroll-modified-velocitytracker.patch"
 apply	"frameworks/base"	"0002-Frequently-used-OpenGL-ES-methods-whitelisted-for-fa.patch"
@@ -56,5 +57,9 @@ apply   "bionic"                "0014-libc-kryo-import-ARM-strlen-from-Apple-C-l
 apply   "bionic"                "0015-libc-arm-Optimise-memchr-for-NEON-enabled-processors.patch"
 apply   "bionic"                "0016-Use-builtins-for-fma-fmax-fmin-round-on-arm64.patch"
 apply   "bionic"                "0017-Add-remaining-AArch32-and-ARM64-builtin-math-routine.patch"
+
+apply	"device/motorola/sanders"	"0001-sanders-overlay-Enable-turbo-power-charger-support.patch"
+apply	"device/motorola/sanders"	"0002-Set-up-EAS-on-device-boot.patch"
+apply	"device/motorola/sanders"	"0003-sanders-Include-ARCore.patch"
 
 popd >/dev/null 2>&1

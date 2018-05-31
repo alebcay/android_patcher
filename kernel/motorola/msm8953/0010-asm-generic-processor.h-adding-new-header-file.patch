@@ -1,0 +1,65 @@
+From ace5b67dfb22fd590a5cfcb4beb0a021c6740218 Mon Sep 17 00:00:00 2001
+From: Sumit Singh <sumsingh@nvidia.com>
+Date: Fri, 14 Mar 2014 11:57:24 +0530
+Subject: [PATCH 10/27] asm-generic: processor.h: adding new header file
+
+Defining a new header file and adding architecture
+independent macros. Using these macros we are optimizing
+power usage on ARM64.
+
+bug 1440421
+
+Change-Id: I7393d35703d0b0a504331653d70f109a50a197c7
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+Reviewed-on: http://git-master/r/381905
+Reviewed-by: Automatic_Commit_Validation_User
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Alexander Van Brunt <avanbrunt@nvidia.com>
+Reviewed-by: Sri Krishna Chowdary <schowdary@nvidia.com>
+Reviewed-by: Bharat Nihalani <bnihalani@nvidia.com>
+Signed-off-by: Jesse Chan <jc@linux.com>
+Signed-off-by: Michele Beccalossi <beccalossi.michele@gmail.com>
+---
+ include/asm-generic/processor.h | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+ create mode 100644 include/asm-generic/processor.h
+
+diff --git a/include/asm-generic/processor.h b/include/asm-generic/processor.h
+new file mode 100644
+index 00000000000..cba2d9edf73
+--- /dev/null
++++ b/include/asm-generic/processor.h
+@@ -0,0 +1,30 @@
++/*
++ * include/asm-generic/processor.h
++ *
++ * Copyright (c) 2014 NVIDIA Corporation. All rights reserved.
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _ASM_GENERIC_PROCESSOR_H_
++#define _ASM_GENERIC_PROCESSOR_H_
++
++#ifndef cpu_relaxed_read
++#define cpu_relaxed_read(p) (*(p))
++#endif
++
++#ifndef cpu_relaxed_read_long
++#define cpu_relaxed_read_long(p) (*(p))
++#endif
++
++#ifndef cpu_read_relax
++#define cpu_read_relax() cpu_relax()
++#endif
++
++#endif /*_ASM_GENERIC_PROCESSOR_H_*/
+-- 
+2.11.0
+

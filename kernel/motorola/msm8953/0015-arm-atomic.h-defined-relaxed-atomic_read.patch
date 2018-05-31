@@ -1,0 +1,36 @@
+From b4c32c2170fb10f45ba04917e49905e4402a6f07 Mon Sep 17 00:00:00 2001
+From: Sumit Singh <sumsingh@nvidia.com>
+Date: Sat, 19 Apr 2014 13:01:43 +0530
+Subject: [PATCH 15/27] arm: atomic.h: defined relaxed atomic_read
+
+Defining relaxed version of atomic read as cpu_relaxed_read_atomic.
+
+bug 1440421
+
+Change-Id: I39303d72350985890c7eb5a1afc768c3f8064b47
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+(cherry picked from commit 6c20e8c2aed05ad1a9d1b41cfdd875dc377db44c)
+Reviewed-on: http://git-master/r/415637
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Bharat Nihalani <bnihalani@nvidia.com>
+
+Signed-off-by: franciscofranco <franciscofranco.1990@gmail.com>
+---
+ arch/arm/include/asm/atomic.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
+index e22c11970b7..121746e2bc2 100644
+--- a/arch/arm/include/asm/atomic.h
++++ b/arch/arm/include/asm/atomic.h
+@@ -29,6 +29,7 @@
+  */
+ #define atomic_read(v)	ACCESS_ONCE((v)->counter)
+ #define atomic_set(v,i)	(((v)->counter) = (i))
++#define cpu_relaxed_read_atomic(v)	atomic_read(v)
+ 
+ #if __LINUX_ARM_ARCH__ >= 6
+ 
+-- 
+2.11.0
+

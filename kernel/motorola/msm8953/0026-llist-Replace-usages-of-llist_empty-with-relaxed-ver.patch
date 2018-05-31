@@ -1,0 +1,83 @@
+From 85d8f173c66d2edadf71ec2a15c7c46617ee67a1 Mon Sep 17 00:00:00 2001
+From: Andrei F <luxneb@gmail.com>
+Date: Mon, 24 Aug 2015 02:59:31 +0200
+Subject: [PATCH 26/27] llist: Replace usages of llist_empty with relaxed
+ version
+
+---
+ kernel/irq_work.c   | 8 ++++----
+ kernel/sched/core.c | 4 ++--
+ net/rds/ib_rdma.c   | 2 +-
+ 3 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/kernel/irq_work.c b/kernel/irq_work.c
+index 3ab9048483f..2af5076a790 100644
+--- a/kernel/irq_work.c
++++ b/kernel/irq_work.c
+@@ -116,8 +116,8 @@ bool irq_work_needs_cpu(void)
+ 	raised = this_cpu_ptr(&raised_list);
+ 	lazy = this_cpu_ptr(&lazy_list);
+ 
+-	if (llist_empty(raised) || arch_irq_work_has_interrupt())
+-		if (llist_empty(lazy))
++	if (llist_empty_relaxed(raised) || arch_irq_work_has_interrupt())
++		if (llist_empty_relaxed(lazy))
+ 			return false;
+ 
+ 	/* All work should have been flushed before going offline */
+@@ -134,7 +134,7 @@ static void irq_work_run_list(struct llist_head *list)
+ 
+ 	BUG_ON(!irqs_disabled());
+ 
+-	if (llist_empty(list))
++	if (llist_empty_relaxed(list))
+ 		return;
+ 
+ 	llnode = llist_del_all(list);
+@@ -177,7 +177,7 @@ void irq_work_tick(void)
+ {
+ 	struct llist_head *raised = &__get_cpu_var(raised_list);
+ 
+-	if (!llist_empty(raised) && !arch_irq_work_has_interrupt())
++	if (!llist_empty_relaxed(raised) && !arch_irq_work_has_interrupt())
+ 		irq_work_run_list(raised);
+ 	irq_work_run_list(&__get_cpu_var(lazy_list));
+ }
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index af80d51b00e..f38f13adefa 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1906,7 +1906,7 @@ void scheduler_ipi(void)
+ 	 */
+ 	preempt_fold_need_resched();
+ 
+-	if (llist_empty(&this_rq()->wake_list) && !got_nohz_idle_kick())
++	if (llist_empty_relaxed(&this_rq()->wake_list) && !got_nohz_idle_kick())
+ 		return;
+ 
+ 	/*
+@@ -3794,7 +3794,7 @@ int idle_cpu(int cpu)
+ 		return 0;
+ 
+ #ifdef CONFIG_SMP
+-	if (!llist_empty(&rq->wake_list))
++	if (!llist_empty_relaxed(&rq->wake_list))
+ 		return 0;
+ #endif
+ 
+diff --git a/net/rds/ib_rdma.c b/net/rds/ib_rdma.c
+index 657ba9f5d30..afeb3d65edc 100644
+--- a/net/rds/ib_rdma.c
++++ b/net/rds/ib_rdma.c
+@@ -593,7 +593,7 @@ static int rds_ib_flush_mr_pool(struct rds_ib_mr_pool *pool,
+ 
+ 			prepare_to_wait(&pool->flush_wait, &wait,
+ 					TASK_UNINTERRUPTIBLE);
+-			if (llist_empty(&pool->clean_list))
++			if (llist_empty_relaxed(&pool->clean_list))
+ 				schedule();
+ 
+ 			ibmr = rds_ib_reuse_fmr(pool);
+-- 
+2.11.0
+

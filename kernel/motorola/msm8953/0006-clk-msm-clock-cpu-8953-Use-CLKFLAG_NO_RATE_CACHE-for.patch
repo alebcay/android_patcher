@@ -1,0 +1,41 @@
+From 702c4478d04cd4988dd4cc3dcc4ff3ae80e92e6e Mon Sep 17 00:00:00 2001
+From: Sultan Alsawaf <sultanxda@gmail.com>
+Date: Sun, 16 Jul 2017 19:52:13 -0700
+Subject: [PATCH 06/27] clk: msm: clock-cpu-8953: Use CLKFLAG_NO_RATE_CACHE for
+ a53ssmux_perf/pwr
+
+Both clusters can have frequency change requests ignored when they
+come online without having this flag set. This can result in the clusters
+running at their default frequency instead of the frequency that the CPU
+governor wants.
+
+Change-Id: I30a09e3f798c96b2323b86701e1cffa21817fd21
+Signed-off-by: Sultan Alsawaf <sultanxda@gmail.com>
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ drivers/clk/msm/clock-cpu-8953.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/clk/msm/clock-cpu-8953.c b/drivers/clk/msm/clock-cpu-8953.c
+index 7be9226c07e..d70e6fe69ba 100644
+--- a/drivers/clk/msm/clock-cpu-8953.c
++++ b/drivers/clk/msm/clock-cpu-8953.c
+@@ -156,6 +156,7 @@ static struct mux_div_clk a53ssmux_perf = {
+ 	},
+ 	.c = {
+ 		.dbg_name = "a53ssmux_perf",
++		.flags = CLKFLAG_NO_RATE_CACHE,
+ 		.ops = &clk_ops_mux_div_clk,
+ 		CLK_INIT(a53ssmux_perf.c),
+ 	},
+@@ -177,6 +178,7 @@ static struct mux_div_clk a53ssmux_pwr = {
+ 	},
+ 	.c = {
+ 		.dbg_name = "a53ssmux_pwr",
++		.flags = CLKFLAG_NO_RATE_CACHE,
+ 		.ops = &clk_ops_mux_div_clk,
+ 		CLK_INIT(a53ssmux_pwr.c),
+ 	},
+-- 
+2.11.0
+

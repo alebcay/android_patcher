@@ -1,0 +1,46 @@
+From 71921c2959a6bced3d23fac27c66a462166cfa2b Mon Sep 17 00:00:00 2001
+From: Sumit Singh <sumsingh@nvidia.com>
+Date: Sat, 19 Apr 2014 13:12:58 +0530
+Subject: [PATCH 16/27] arm64: atomic.h: defining relaxed atomic_read
+
+Defining relaxed version of atomic read as cpu_relaxed_read_atomic
+which will be used for improving power efficiency for arm64.
+
+bug 1440421
+
+Change-Id: I5a88b8e66ec3021335905109010efc856ffa7c7e
+Signed-off-by: Alex Van Brunt <avanbrunt@nvidia.com>
+(cherry picked from commit f53c05073d148adfe7abe153f1569c4bd655fb44)
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+Reviewed-on: http://git-master/r/415639
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Bharat Nihalani <bnihalani@nvidia.com>
+Signed-off-by: Jesse Chan <jc@linux.com>
+Signed-off-by: Michele Beccalossi <beccalossi.michele@gmail.com>
+---
+ arch/arm64/include/asm/atomic.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/include/asm/atomic.h b/arch/arm64/include/asm/atomic.h
+index 284a95fb3ea..2d53a5bc133 100644
+--- a/arch/arm64/include/asm/atomic.h
++++ b/arch/arm64/include/asm/atomic.h
+@@ -4,6 +4,7 @@
+  * Copyright (C) 1996 Russell King.
+  * Copyright (C) 2002 Deep Blue Solutions Ltd.
+  * Copyright (C) 2012 ARM Ltd.
++ * Copyright (C) 2014, NVIDIA CORPORATION.  All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+@@ -37,6 +38,7 @@
+  */
+ #define atomic_read(v)	ACCESS_ONCE((v)->counter)
+ #define atomic_set(v,i)	(((v)->counter) = (i))
++#define cpu_relaxed_read_atomic(v)	ldax32((volatile int *)&(v->counter))
+ 
+ /*
+  * Macros for generating inline functions to use special load and store
+-- 
+2.11.0
+

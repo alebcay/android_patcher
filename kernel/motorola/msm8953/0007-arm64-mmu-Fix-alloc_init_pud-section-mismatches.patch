@@ -1,0 +1,30 @@
+From 4e3756dac5fc96b0096f572b691af052977266fe Mon Sep 17 00:00:00 2001
+From: Sultanxda <sultanxda@gmail.com>
+Date: Sat, 2 Dec 2017 14:43:08 -0800
+Subject: [PATCH 07/27] arm64: mmu: Fix alloc_init_pud section mismatches
+
+Section mismatches occured when building the kernel inline with the ROM.
+
+Change-Id: I6d2c5b662fe4454f4ef4acd277264b20cbe96fc8
+Signed-off-by: Sultanxda <sultanxda@gmail.com>
+Signed-off-by: khanfrd <khanfrd94@gmail.com>
+---
+ arch/arm64/mm/mmu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 4852a5d61fb..8f95c33b6db 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -356,7 +356,7 @@ static inline bool use_1G_block(unsigned long addr, unsigned long next,
+ 	return true;
+ }
+ 
+-static void alloc_init_pud(struct mm_struct *mm, pgd_t *pgd,
++static void __ref alloc_init_pud(struct mm_struct *mm, pgd_t *pgd,
+ 				  unsigned long addr, unsigned long end,
+ 				  phys_addr_t phys, pgprot_t prot,
+ 				  void *(*alloc)(unsigned long size), bool force_pages)
+-- 
+2.11.0
+

@@ -1,0 +1,54 @@
+From 458cfd07830e4187d56fb5f3bd85571b96ef5c8c Mon Sep 17 00:00:00 2001
+From: xperiafan13-rom <androidanimerom@gmail.com>
+Date: Fri, 22 Sep 2017 18:40:30 -0500
+Subject: [PATCH 25/27] smp: enhance power efficiency
+
+Here we are trying to reduce power usage through the
+use of macros cpu_relaxed_read_short and cpu_relaxed_read.
+
+Bug 1440421
+
+Change-Id: I114d122cf58b1cf7b93b4b5f5d712360a2f1e096
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+Reviewed-on: http://git-master/r/425947
+Reviewed-by: Automatic_Commit_Validation_User
+Reviewed-by: Sri Krishna Chowdary <schowdary@nvidia.com>
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Alexander Van Brunt <avanbrunt@nvidia.com>
+Signed-off-by: Andrei F <luxneb@gmail.com>
+
+Conflicts:
+	kernel/smp.c
+Signed-off-by: Jesse Chan <jc@linux.com>
+
+Signed-off-by: Michele Beccalossi <beccalossi.michele@gmail.com>
+---
+ kernel/smp.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/smp.c b/kernel/smp.c
+index 7d89e8af5d9..b54cad92dc5 100644
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -14,6 +14,7 @@
+ #include <linux/smp.h>
+ #include <linux/cpu.h>
+ #include <linux/sched.h>
++#include <asm/relaxed.h>
+ 
+ #include "smpboot.h"
+ 
+@@ -133,8 +134,8 @@ void __init call_function_init(void)
+ static void csd_lock_wait(struct call_single_data *csd)
+ {
+ 	set_csd_lock_waiting_flag();
+-	while (csd->flags & CSD_FLAG_LOCK)
+-		cpu_relax();
++	while (cpu_relaxed_read_short(&csd->flags) & CSD_FLAG_LOCK)
++		cpu_read_relax();
+ 	clear_csd_lock_waiting_flag();
+ }
+ 
+-- 
+2.11.0
+

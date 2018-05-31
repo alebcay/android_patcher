@@ -1,0 +1,69 @@
+From 2f7c1c058e7cc68123df0152ff9a8aeec6e577cb Mon Sep 17 00:00:00 2001
+From: Francisco Franco <franciscofranco.1990@gmail.com>
+Date: Sun, 13 Aug 2017 15:38:39 +0000
+Subject: [PATCH 03/27] arm64: lib: memory utilities optimization
+
+Optimize memcpy and memmove, to prefetch several cache lines.
+We can achieve 15% memcpy speed improvement with the preload method.
+
+Francisco: slightly adapted the original patch to merge since memcpy's
+code bulk is in copy_template.S now.
+
+Change-Id: I2259b98a33eba0b7466920b3f270f953e609cf13
+Signed-off-by: Hong-Mei Li <a21834@motorola.com>
+Reviewed-on: http://gerrit.mot.com/740766
+SLTApproved: Slta Waiver <sltawvr@motorola.com>
+SME-Granted: SME Approvals Granted
+Tested-by: Jira Key <jirakey@motorola.com>
+Reviewed-by: Zhi-Ming Yuan <a14194@motorola.com>
+Submit-Approved: Jira Key <jirakey@motorola.com>
+
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ arch/arm64/lib/copy_template.S | 2 ++
+ arch/arm64/lib/memmove.S       | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/arch/arm64/lib/copy_template.S b/arch/arm64/lib/copy_template.S
+index 410fbdb8163..eba44dee012 100644
+--- a/arch/arm64/lib/copy_template.S
++++ b/arch/arm64/lib/copy_template.S
+@@ -51,6 +51,7 @@ C_h	.req	x12
+ D_l	.req	x13
+ D_h	.req	x14
+ 
++	prfm    pldl1strm, [src, #(1*L1_CACHE_BYTES)]
+ 	mov	dst, dstin
+ 	cmp	count, #16
+ 	/*When memory length is less than 16, the accessed are not aligned.*/
+@@ -181,6 +182,7 @@ D_h	.req	x14
+ 	ldp1	C_l, C_h, src, #16
+ 	stp1	D_l, D_h, dst, #16
+ 	ldp1	D_l, D_h, src, #16
++	prfm    pldl1strm, [src, #(4*L1_CACHE_BYTES)]
+ 	subs	count, count, #64
+ 	b.ge	1b
+ 	stp1	A_l, A_h, dst, #16
+diff --git a/arch/arm64/lib/memmove.S b/arch/arm64/lib/memmove.S
+index a5a4459013b..f5ac945d2a6 100644
+--- a/arch/arm64/lib/memmove.S
++++ b/arch/arm64/lib/memmove.S
+@@ -60,6 +60,7 @@ D_h	.req	x14
+ 	.weak memmove
+ ENTRY(__memmove)
+ ENTRY(memmove)
++	prfm    pldl1strm, [src, #L1_CACHE_BYTES]
+ 	cmp	dstin, src
+ 	b.lo	__memcpy
+ 	add	tmp1, src, count
+@@ -186,6 +187,7 @@ ENTRY(memmove)
+ 	ldp	C_l, C_h, [src, #-48]
+ 	stp	D_l, D_h, [dst, #-64]!
+ 	ldp	D_l, D_h, [src, #-64]!
++	prfm    pldl1strm, [src, #(4*L1_CACHE_BYTES)]
+ 	subs	count, count, #64
+ 	b.ge	1b
+ 	stp	A_l, A_h, [dst, #-16]
+-- 
+2.11.0
+

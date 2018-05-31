@@ -1,0 +1,36 @@
+From 3ec76e60879db6f78e42ad5c9d6be6a66abc8094 Mon Sep 17 00:00:00 2001
+From: Francisco Franco <franciscofranco.1990@gmail.com>
+Date: Sat, 26 Nov 2016 16:10:36 +0000
+Subject: [PATCH 01/27] drivers: thermal: queue work on
+ system_power_efficient_wq
+
+There doesn't seem to be any real dependency of scheduling these on
+the cpu which scheduled them, so moving every *_delayed to the
+power efficient wq save potential needlessly idle cpu wake ups
+leaving the scheduler to decide the most appropriate cpus to wake up.
+
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+Signed-off-by: Joe Maples <joe@frap129.org>
+---
+ drivers/thermal/msm_thermal.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/thermal/msm_thermal.c b/drivers/thermal/msm_thermal.c
+index ab37e3c146e..ac4dabf9c3b 100644
+--- a/drivers/thermal/msm_thermal.c
++++ b/drivers/thermal/msm_thermal.c
+@@ -3446,8 +3446,9 @@ static void check_temp(struct work_struct *work)
+ 
+ reschedule:
+ 	if (polling_enabled)
+-		schedule_delayed_work(&check_temp_work,
+-				msecs_to_jiffies(msm_thermal_info.poll_ms));
++		queue_delayed_work(system_power_efficient_wq,
++			&check_temp_work,
++			msecs_to_jiffies(msm_thermal_info.poll_ms));
+ }
+ 
+ static int __ref msm_thermal_cpu_callback(struct notifier_block *nfb,
+-- 
+2.11.0
+

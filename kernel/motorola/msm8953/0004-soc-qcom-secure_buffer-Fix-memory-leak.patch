@@ -1,0 +1,57 @@
+From 56f11468fbdb26cd932734ea8ed638189667d43d Mon Sep 17 00:00:00 2001
+From: Patrick Daly <pdaly@codeaurora.org>
+Date: Tue, 20 Dec 2016 15:28:26 -0800
+Subject: [PATCH 04/27] soc: qcom: secure_buffer: Fix memory leak
+
+Free the sg_table properly.
+
+Change-Id: Idae945d17803e10756bf3a20426e57837d185067
+Signed-off-by: Patrick Daly <pdaly@codeaurora.org>
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ drivers/soc/qcom/secure_buffer.c | 23 +++++++----------------
+ 1 file changed, 7 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/soc/qcom/secure_buffer.c b/drivers/soc/qcom/secure_buffer.c
+index c01c225d95a..97bf4a5c31d 100644
+--- a/drivers/soc/qcom/secure_buffer.c
++++ b/drivers/soc/qcom/secure_buffer.c
+@@ -324,28 +324,19 @@ int hyp_assign_phys(phys_addr_t addr, u64 size, u32 *source_vm_list,
+ 			int source_nelems, int *dest_vmids,
+ 			int *dest_perms, int dest_nelems)
+ {
+-	struct sg_table *table;
++	struct sg_table table;
+ 	int ret;
+ 
+-	table = kzalloc(sizeof(struct sg_table), GFP_KERNEL);
+-	if (!table)
+-		return -ENOMEM;
+-	ret = sg_alloc_table(table, 1, GFP_KERNEL);
++	ret = sg_alloc_table(&table, 1, GFP_KERNEL);
+ 	if (ret)
+-		goto err1;
++		return ret;
+ 
+-	sg_set_page(table->sgl, phys_to_page(addr), size, 0);
++	sg_set_page(table.sgl, phys_to_page(addr), size, 0);
+ 
+-	ret = hyp_assign_table(table, source_vm_list, source_nelems, dest_vmids,
+-						dest_perms, dest_nelems);
+-	if (ret)
+-		goto err2;
++	ret = hyp_assign_table(&table, source_vm_list, source_nelems,
++			       dest_vmids, dest_perms, dest_nelems);
+ 
+-	return ret;
+-err2:
+-	sg_free_table(table);
+-err1:
+-	kfree(table);
++	sg_free_table(&table);
+ 	return ret;
+ }
+ 
+-- 
+2.11.0
+

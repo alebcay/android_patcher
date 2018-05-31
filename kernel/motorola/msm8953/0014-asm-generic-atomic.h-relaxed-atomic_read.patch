@@ -1,0 +1,50 @@
+From 0cc991e86f6f617acd1a7d683315b1bd125e9283 Mon Sep 17 00:00:00 2001
+From: Sumit Singh <sumsingh@nvidia.com>
+Date: Wed, 2 Apr 2014 15:03:15 +0530
+Subject: [PATCH 14/27] asm-generic: atomic.h: relaxed atomic_read
+
+Defining relaxed version of atomic read as cpu_relaxed_read_atomic
+which will be used for improving power efficiency for arm64.
+
+bug 1440421
+
+Change-Id: I6ac26653ec3d62f74d8c21f250dcdaf9dfb75b9b
+Signed-off-by: Alex Van Brunt <avanbrunt@nvidia.com>
+(cherry picked from commit 7360c3df73afa07361eecab730903e0697d3408f)
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+Reviewed-on: http://git-master/r/415628
+Reviewed-by: Automatic_Commit_Validation_User
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Bharat Nihalani <bnihalani@nvidia.com>
+Signed-off-by: Jesse Chan <jc@linux.com>
+Signed-off-by: Michele Beccalossi <beccalossi.michele@gmail.com>
+---
+ include/asm-generic/atomic.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+index 1973ad2b13f..f6a6fe2996e 100644
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -6,6 +6,7 @@
+  *
+  * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
+  * Written by David Howells (dhowells@redhat.com)
++ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public Licence
+@@ -129,6 +130,10 @@ ATOMIC_OP(or, |)
+ #define atomic_read(v)	ACCESS_ONCE((v)->counter)
+ #endif
+ 
++#ifndef cpu_relaxed_read_atomic
++#define cpu_relaxed_read_atomic(v) atomic_read(v)
++#endif
++
+ /**
+  * atomic_set - set atomic variable
+  * @v: pointer of type atomic_t
+-- 
+2.11.0
+

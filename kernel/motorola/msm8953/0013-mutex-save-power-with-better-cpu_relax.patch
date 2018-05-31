@@ -1,0 +1,48 @@
+From 87bc4474c7affbbd73d29d6c61abb99cfe7d1d1a Mon Sep 17 00:00:00 2001
+From: Alex Van Brunt <avanbrunt@nvidia.com>
+Date: Fri, 16 May 2014 12:37:06 -0700
+Subject: [PATCH 13/27] mutex: save power with better cpu_relax
+
+Use cpu_relaxed_read and cpu_read_relax to allow more architectures to be able
+to "relax" instead of busy spinning.
+
+Bug 1440421
+
+Change-Id: I48e36d7b3c953fe43ebb23ea814de7738c91e394
+Signed-off-by: Alex Van Brunt <avanbrunt@nvidia.com>
+Reviewed-on: http://git-master/r/412712
+Reviewed-by: Sumit Singh <sumsingh@nvidia.com>
+GVS: Gerrit_Virtual_Submit
+(cherry picked from commit 84816418d37ac4644d3947c6c1e8463e8c71ea9d)
+---
+ kernel/locking/mcs_spinlock.h | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
+index 4d60986fcbe..160a27977b5 100644
+--- a/kernel/locking/mcs_spinlock.h
++++ b/kernel/locking/mcs_spinlock.h
+@@ -81,7 +81,8 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	ACCESS_ONCE(prev->next) = node;
+ 
+ 	/* Wait until the lock holder passes the lock down. */
+-	arch_mcs_spin_lock_contended(&node->locked);
++	while (!cpu_relaxed_read(&(node->locked)))
++		cpu_read_relax();
+ }
+ 
+ /*
+@@ -100,8 +101,8 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 		if (likely(cmpxchg(lock, node, NULL) == node))
+ 			return;
+ 		/* Wait until the next pointer is set */
+-		while (!(next = ACCESS_ONCE(node->next)))
+-			cpu_relax_lowlatency();
++		while (!(next = (struct mcs_spinlock*)(cpu_relaxed_read_long(&(node->next)))))
++			cpu_read_relax();
+ 	}
+ 
+ 	/* Pass lock to next waiter. */
+-- 
+2.11.0
+

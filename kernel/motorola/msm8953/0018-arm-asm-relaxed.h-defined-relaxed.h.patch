@@ -1,0 +1,39 @@
+From 3f9be25f520f2e55cd88beb6a88411d02ee16ecd Mon Sep 17 00:00:00 2001
+From: UchihaDev <ajit4guraya@gmail.com>
+Date: Fri, 23 Feb 2018 20:22:24 +0545
+Subject: [PATCH 18/27] arm: asm: relaxed.h: defined relaxed.h
+
+---
+ arch/arm/include/asm/relaxed.h | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+ create mode 100644 arch/arm/include/asm/relaxed.h
+
+diff --git a/arch/arm/include/asm/relaxed.h b/arch/arm/include/asm/relaxed.h
+new file mode 100644
+index 00000000000..378e48d99fe
+--- /dev/null
++++ b/arch/arm/include/asm/relaxed.h
+@@ -0,0 +1,20 @@
++/*
++ * arm/include/asm/relaxed.h
++ *
++ * Copyright (c) 2014 NVIDIA Corporation. All rights reserved.
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _ASM_RELAXED_H_
++#define _ASM_RELAXED_H_
++
++#include <asm-generic/relaxed.h>
++
++#endif /*_ASM_RELAXED_H_*/
+-- 
+2.11.0
+

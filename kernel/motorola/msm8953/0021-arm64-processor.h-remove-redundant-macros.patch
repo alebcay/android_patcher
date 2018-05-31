@@ -1,0 +1,49 @@
+From 9584ded00b891cdfc19b3805074df8f634dee9e9 Mon Sep 17 00:00:00 2001
+From: Sumit Singh <sumsingh@nvidia.com>
+Date: Wed, 23 Apr 2014 11:56:55 +0530
+Subject: [PATCH 21/27] arm64: processor.h: remove redundant macros
+
+Removing cpu_relaxed_read and cpu_relaxed_read_long macros from
+processor.h, as these macros are defined in asm/relaxed.h.
+
+bug 1440421
+
+Change-Id: Ic766ac6e34eefe93f90349c088626a0fb277670c
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+Reviewed-on: http://git-master/r/400127
+(cherry picked from commit 108bf0b30d72c52e33dd4fec71dd1ed5baf13ed2)
+Reviewed-on: http://git-master/r/422214
+Reviewed-by: Automatic_Commit_Validation_User
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Bharat Nihalani <bnihalani@nvidia.com>
+Signed-off-by: Jesse Chan <jc@linux.com>
+Signed-off-by: Michele Beccalossi <beccalossi.michele@gmail.com>
+---
+ arch/arm64/include/asm/processor.h | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index ed467a29480..af820a95a4c 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -34,7 +34,7 @@
+ #include <asm/hw_breakpoint.h>
+ #include <asm/ptrace.h>
+ #include <asm/types.h>
+-#include <asm/atomic.h>
++#include <asm/relaxed.h>
+ 
+ #ifdef __KERNEL__
+ #define STACK_TOP_MAX		TASK_SIZE_64
+@@ -136,8 +136,6 @@ unsigned long get_wchan(struct task_struct *p);
+ #define cpu_relax()			barrier()
+ #define cpu_relax_lowlatency()                cpu_relax()
+ 
+-#define cpu_relaxed_read(p)		ldax32(p)
+-#define cpu_relaxed_read_long(p)	ldax64((u64 *)p)
+ #define cpu_read_relax()		wfe()
+ 
+ /* Thread switching */
+-- 
+2.11.0
+

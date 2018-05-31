@@ -1,0 +1,68 @@
+From d4a3db13bf429a8718ebf98d069ede644198e344 Mon Sep 17 00:00:00 2001
+From: Andrei F <luxneb@gmail.com>
+Date: Tue, 25 Aug 2015 15:29:10 +0200
+Subject: [PATCH 27/27] hrtimer: Replace usages of hrtimer_callback_running
+ with relaxed version
+
+Change-Id: I04b255cf4dc2beaff0113fcd2a873a48bf3c44ad
+---
+ kernel/sched/fair.c   | 2 +-
+ kernel/time/hrtimer.c | 8 ++++----
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index d45def3ee4f..95f9f49b1a8 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -4013,7 +4013,7 @@ static int runtime_refresh_within(struct cfs_bandwidth *cfs_b, u64 min_expire)
+ 	u64 remaining;
+ 
+ 	/* if the call-back is running a quota refresh is already occurring */
+-	if (hrtimer_callback_running(refresh_timer))
++	if (hrtimer_callback_running_relaxed(refresh_timer))
+ 		return 1;
+ 
+ 	/* is a quota refresh about to occur? */
+diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
+index 150d117a3aa..24d00be4a14 100644
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -217,7 +217,7 @@ again:
+ 		 * completed. There is no conflict as we hold the lock until
+ 		 * the timer is enqueued.
+ 		 */
+-		if (unlikely(hrtimer_callback_running(timer)))
++		if (unlikely(hrtimer_callback_running_relaxed(timer)))
+ 			return base;
+ 
+ 		/* See the comment in lock_timer_base() */
+@@ -579,7 +579,7 @@ static int hrtimer_reprogram(struct hrtimer *timer,
+ 	 * reprogramming is handled either by the softirq, which called the
+ 	 * callback or at the end of the hrtimer_interrupt.
+ 	 */
+-	if (hrtimer_callback_running(timer))
++	if (hrtimer_callback_running_relaxed(timer))
+ 		return 0;
+ 
+ 	/*
+@@ -1068,7 +1068,7 @@ int hrtimer_try_to_cancel(struct hrtimer *timer)
+ 
+ 	base = lock_hrtimer_base(timer, &flags);
+ 
+-	if (!hrtimer_callback_running(timer))
++	if (!hrtimer_callback_running_relaxed(timer))
+ 		ret = remove_hrtimer(timer, base);
+ 
+ 	unlock_hrtimer_base(timer, &flags);
+@@ -1651,7 +1651,7 @@ static void migrate_hrtimer_list(struct hrtimer_clock_base *old_base,
+ 
+ 	while ((node = timerqueue_getnext(&old_base->active))) {
+ 		timer = container_of(node, struct hrtimer, node);
+-		BUG_ON(hrtimer_callback_running(timer));
++		BUG_ON(hrtimer_callback_running_relaxed(timer));
+ 		debug_deactivate(timer);
+ 
+ 		/*
+-- 
+2.11.0
+

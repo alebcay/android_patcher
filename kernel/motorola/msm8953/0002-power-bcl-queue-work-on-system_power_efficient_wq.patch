@@ -1,0 +1,42 @@
+From 802ffcb18247686c236895b86e2b2158e9311dc2 Mon Sep 17 00:00:00 2001
+From: Francisco Franco <franciscofranco.1990@gmail.com>
+Date: Wed, 12 Oct 2016 17:10:42 +0000
+Subject: [PATCH 02/27] power: bcl: queue work on system_power_efficient_wq
+
+There doesn't seem to be any real dependency of scheduling these on
+the cpu which scheduled them, so moving every *_delayed to the
+power efficient wq save potential needlessly idle cpu wake ups
+leaving the scheduler to decide the most appropriate cpus to wake up.
+
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ drivers/power/battery_current_limit.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/battery_current_limit.c b/drivers/power/battery_current_limit.c
+index 4554d8c3a73..7cbcc794d13 100644
+--- a/drivers/power/battery_current_limit.c
++++ b/drivers/power/battery_current_limit.c
+@@ -421,7 +421,8 @@ static void bcl_iavail_work(struct work_struct *work)
+ 	if (gbcl->bcl_mode == BCL_DEVICE_ENABLED) {
+ 		bcl_calculate_iavail_trigger();
+ 		/* restart the delay work for caculating imax */
+-		schedule_delayed_work(&bcl->bcl_iavail_work,
++		queue_delayed_work(system_power_efficient_wq,
++                        &bcl->bcl_iavail_work,
+ 			msecs_to_jiffies(bcl->bcl_poll_interval_msec));
+ 	}
+ }
+@@ -799,7 +800,8 @@ static void bcl_mode_set(enum bcl_device_mode mode)
+ 	switch (gbcl->bcl_monitor_type) {
+ 	case BCL_IAVAIL_MONITOR_TYPE:
+ 		if (mode == BCL_DEVICE_ENABLED)
+-			schedule_delayed_work(&gbcl->bcl_iavail_work, 0);
++			queue_delayed_work(system_power_efficient_wq,
++                                &gbcl->bcl_iavail_work, 0);
+ 		else
+ 			cancel_delayed_work_sync(&(gbcl->bcl_iavail_work));
+ 		break;
+-- 
+2.11.0
+

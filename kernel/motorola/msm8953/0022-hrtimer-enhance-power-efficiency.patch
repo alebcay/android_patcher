@@ -1,0 +1,60 @@
+From ce0fb8cdeb830ff246fefac290f321259f1347f5 Mon Sep 17 00:00:00 2001
+From: Sumit Singh <sumsingh.com>
+Date: Mon, 21 Apr 2014 13:59:04 +0530
+Subject: [PATCH 22/27] hrtimer: enhance power efficiency
+
+Defining relaxed version of hrtimer_callback_running(),
+which will be used to improve power efficiency through
+the use of macro cpu_relaxed_read_long.
+
+Bug 1440421
+
+Change-Id: Ie42d7ae9628a817d52f4636781e11b607327c2c5
+Signed-off-by: Sumit Singh <sumsingh@nvidia.com>
+Reviewed-on: http://git-master/r/398789
+(cherry picked from commit 0d9f5fc1d39d7d1809519b5d11bf7ac72287b7c6)
+Reviewed-on: http://git-master/r/422255
+Reviewed-by: Automatic_Commit_Validation_User
+GVS: Gerrit_Virtual_Submit
+Reviewed-by: Bharat Nihalani <bnihalani@nvidia.com>
+Signed-off-by: Jesse Chan <jc@linux.com>
+Signed-off-by: Michele Beccalossi <beccalossi.michele@gmail.com>
+---
+ include/linux/hrtimer.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/include/linux/hrtimer.h b/include/linux/hrtimer.h
+index 05f6df1fdf5..8cc19e0c4e5 100644
+--- a/include/linux/hrtimer.h
++++ b/include/linux/hrtimer.h
+@@ -5,6 +5,7 @@
+  *
+  *   Copyright(C) 2005, Thomas Gleixner <tglx@linutronix.de>
+  *   Copyright(C) 2005, Red Hat, Inc., Ingo Molnar
++ *   Copyright (C) 2014, NVIDIA CORPORATION.  All rights reserved.
+  *
+  *  data type definitions, declarations, prototypes
+  *
+@@ -23,6 +24,7 @@
+ #include <linux/percpu.h>
+ #include <linux/timer.h>
+ #include <linux/timerqueue.h>
++#include <asm/relaxed.h>
+ 
+ struct hrtimer_clock_base;
+ struct hrtimer_cpu_base;
+@@ -414,6 +416,11 @@ static inline int hrtimer_callback_running(struct hrtimer *timer)
+ 	return timer->state & HRTIMER_STATE_CALLBACK;
+ }
+ 
++static inline int hrtimer_callback_running_relaxed(struct hrtimer *timer)
++{
++	return cpu_relaxed_read_long(&timer->state) & HRTIMER_STATE_CALLBACK;
++}
++
+ /* Forward a hrtimer so it expires after now: */
+ extern u64
+ hrtimer_forward(struct hrtimer *timer, ktime_t now, ktime_t interval);
+-- 
+2.11.0
+

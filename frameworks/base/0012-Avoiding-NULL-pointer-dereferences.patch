@@ -1,0 +1,37 @@
+From 9f507d2fb2afd88699cddfdbda7038ddb032779a Mon Sep 17 00:00:00 2001
+From: Venkata Jagadeesh Garaga <vgaraga@codeaurora.org>
+Date: Thu, 8 Jun 2017 10:51:56 +0530
+Subject: [PATCH 3/4] Avoiding NULL pointer dereferences
+
+getDeviceClass method accessed from bluetooth class
+without any null check and leading to crash
+in sns test.
+
+Hence added null check while accessing getDeviceClass
+
+Change-Id: I8635c855b1d097b282320bc6be29155e45a904ca
+---
+ .../src/com/android/settingslib/bluetooth/CachedBluetoothDevice.java | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDevice.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDevice.java
+index 109446d8ed4..7c60b0c8c31 100644
+--- a/packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDevice.java
++++ b/packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDevice.java
+@@ -827,10 +827,11 @@ public class CachedBluetoothDevice implements Comparable<CachedBluetoothDevice>
+             // The pairing dialog now warns of phone-book access for paired devices.
+             // No separate prompt is displayed after pairing.
+             if (getPhonebookPermissionChoice() == CachedBluetoothDevice.ACCESS_UNKNOWN) {
+-                if (mDevice.getBluetoothClass().getDeviceClass()
++                if ((mDevice.getBluetoothClass() != null) &&
++                   (mDevice.getBluetoothClass().getDeviceClass()
+                         == BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE ||
+                     mDevice.getBluetoothClass().getDeviceClass()
+-                        == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET) {
++                        == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET)) {
+                     setPhonebookPermissionChoice(CachedBluetoothDevice.ACCESS_ALLOWED);
+                 } else {
+                     setPhonebookPermissionChoice(CachedBluetoothDevice.ACCESS_REJECTED);
+-- 
+2.11.0
+

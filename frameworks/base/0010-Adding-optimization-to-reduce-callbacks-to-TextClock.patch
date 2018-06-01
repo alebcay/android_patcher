@@ -1,0 +1,80 @@
+From 8b463ef1cf6fe71e180e4676e25deeb9d9d543ea Mon Sep 17 00:00:00 2001
+From: Raj Mamadgi <r.mamadgi@samsung.com>
+Date: Fri, 3 Nov 2017 16:40:29 -0700
+Subject: [PATCH 1/4] Adding optimization to reduce callbacks to TextClock
+
+Prevent ANR in some cases where application has large
+settings db changes.
+
+b/68011626
+
+Change-Id: Idf12c689a89085e1bd3b890c478ecbcb2f51932f
+---
+ core/java/android/widget/TextClock.java | 23 +++++++++++++++++++----
+ 1 file changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/core/java/android/widget/TextClock.java b/core/java/android/widget/TextClock.java
+index 12790403950..7d69c1eb424 100644
+--- a/core/java/android/widget/TextClock.java
++++ b/core/java/android/widget/TextClock.java
+@@ -134,6 +134,7 @@ public class TextClock extends TextView {
+ 
+     private boolean mRegistered;
+     private boolean mShouldRunTicker;
++    private boolean mShouldChooseFormat;
+ 
+     private Calendar mTime;
+     private String mTimeZone;
+@@ -149,13 +150,21 @@ public class TextClock extends TextView {
+ 
+         @Override
+         public void onChange(boolean selfChange) {
+-            chooseFormat();
++            if (mShouldRunTicker) {
++                chooseFormat();
++            } else if (!mShouldChooseFormat) {
++                mShouldChooseFormat = true;
++            }
+             onTimeChanged();
+         }
+ 
+         @Override
+         public void onChange(boolean selfChange, Uri uri) {
+-            chooseFormat();
++            if (mShouldRunTicker) {
++                chooseFormat();
++            } else if (!mShouldChooseFormat) {
++                mShouldChooseFormat = true;
++            }
+             onTimeChanged();
+         }
+     };
+@@ -523,6 +532,10 @@ public class TextClock extends TextView {
+ 
+         if (!mShouldRunTicker && isVisible) {
+             mShouldRunTicker = true;
++            if (mShouldChooseFormat) {
++                mShouldChooseFormat = false;
++                chooseFormat();
++            }
+             if (mHasSeconds) {
+                 mTicker.run();
+             } else {
+@@ -571,10 +584,12 @@ public class TextClock extends TextView {
+             }
+             final ContentResolver resolver = getContext().getContentResolver();
+             if (mShowCurrentUserTime) {
+-                resolver.registerContentObserver(Settings.System.CONTENT_URI, true,
++                resolver.registerContentObserver(
++                        Settings.System.getUriFor(Settings.System.TIME_12_24), true,
+                         mFormatChangeObserver, UserHandle.USER_ALL);
+             } else {
+-                resolver.registerContentObserver(Settings.System.CONTENT_URI, true,
++                resolver.registerContentObserver(
++                        Settings.System.getUriFor(Settings.System.TIME_12_24), true,
+                         mFormatChangeObserver);
+             }
+         }
+-- 
+2.11.0
+

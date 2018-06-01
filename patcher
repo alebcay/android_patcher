@@ -28,6 +28,10 @@ apply	"frameworks/base"	"0006-frameworks-base-Fix-ContentService-JNI-leaks.patch
 apply	"frameworks/base"	"0007-core-jni-use-O3.patch"
 apply	"frameworks/base"	"0008-DeadZone-add-missing-call-to-TypedArray.recycle.patch"
 apply	"frameworks/base"	"0009-Optimize-AbsListView-to-reduce-click-operation-laten.patch"
+apply   "frameworks/base"	"0010-Adding-optimization-to-reduce-callbacks-to-TextClock.patch"
+apply   "frameworks/base"	"0011-media-fix-system_server-deadLock.patch"
+apply   "frameworks/base"	"0012-Avoiding-NULL-pointer-dereferences.patch"
+apply   "frameworks/base"	"0013-Optimize-set-bitmap-actions-in-RemoteViews.patch"
 
 apply 	"system/core"		"0001-use-std-hash-instead-of-hashing-byte-by-byte.patch"
 apply 	"system/core"		"0002-Enable-HAS_VFP_D32-for-32-bit-armv8-crasher.patch"

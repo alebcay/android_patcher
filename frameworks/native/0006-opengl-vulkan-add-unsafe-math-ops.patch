@@ -1,0 +1,46 @@
+From 7b449fa7a4b57d2be86b1ce1d8e9385b14dac849 Mon Sep 17 00:00:00 2001
+From: Miguel Martinez <slverwolf@gmail.com>
+Date: Mon, 12 Mar 2018 18:19:11 -0500
+Subject: [PATCH 6/7] opengl/vulkan: add unsafe-math-ops
+
+Change-Id: I256d78761042fc888271913a09eb221c1b2d2bbc
+---
+ opengl/libs/Android.bp      | 2 ++
+ vulkan/libvulkan/Android.bp | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/opengl/libs/Android.bp b/opengl/libs/Android.bp
+index 20c4705e7..81bc19f31 100644
+--- a/opengl/libs/Android.bp
++++ b/opengl/libs/Android.bp
+@@ -54,6 +54,7 @@ cc_defaults {
+     name: "gl_libs_defaults",
+     cflags: [
+ 	"-O3",
++        "-funsafe-math-optimizations",
+         "-DGL_GLEXT_PROTOTYPES",
+         "-DEGL_EGLEXT_PROTOTYPES",
+         "-fvisibility=hidden",
+@@ -88,6 +89,7 @@ cc_defaults {
+     defaults: ["gl_libs_defaults"],
+     cflags: [
+ 	"-O3",
++        "-funsafe-math-optimizations",
+         "-DLOG_TAG=\"libEGL\"",
+     ],
+     shared_libs: [
+diff --git a/vulkan/libvulkan/Android.bp b/vulkan/libvulkan/Android.bp
+index 454c873b2..e2092f77d 100644
+--- a/vulkan/libvulkan/Android.bp
++++ b/vulkan/libvulkan/Android.bp
+@@ -29,6 +29,7 @@ cc_library_shared {
+ 
+     cflags: [
+ 	"-O3",
++        "-funsafe-math-optimizations",
+         "-DLOG_TAG=\"vulkan\"",
+         "-DVK_USE_PLATFORM_ANDROID_KHR",
+         "-DVK_NO_PROTOTYPES",
+-- 
+2.11.0
+

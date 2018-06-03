@@ -1,0 +1,24 @@
+From a5d67d4646ff8f6022662498c6b9a47add2806bf Mon Sep 17 00:00:00 2001
+From: Miguel Martinez <slverwolf@gmail.com>
+Date: Tue, 20 Mar 2018 13:36:57 -0500
+Subject: [PATCH 7/7] displayservice: build with O3
+
+Change-Id: Ie4366140bb3eb021f2e8507d38924dd14375dffc
+---
+ services/displayservice/Android.bp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/services/displayservice/Android.bp b/services/displayservice/Android.bp
+index 3442cb2ff..983c61b14 100644
+--- a/services/displayservice/Android.bp
++++ b/services/displayservice/Android.bp
+@@ -42,5 +42,6 @@ cc_library_shared {
+     cflags: [
+         "-Werror",
+         "-Wall",
++        "-O3",
+     ]
+ }
+-- 
+2.11.0
+

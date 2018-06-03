@@ -1,0 +1,50 @@
+From bdfc38a58956010418255812be69883d6acc52d3 Mon Sep 17 00:00:00 2001
+From: "hg.choi" <hg.choi@lge.com>
+Date: Fri, 9 Feb 2018 18:44:24 +0900
+Subject: [PATCH 2/7] Fix bugs regarding calculate dalvik-cache size
+
+Symptom:
+App size measure too large.
+
+Root cause:
+A/B Update mounts system_other(system_b) and copy prebuilt odex
+files from it to data/dalvik-cache in the first bootng.
+this working is executed by root so after first boot, the oat files have root uid and gid.
+
+Shared gid can be root gid returned by multiuser_get_shared_gid()
+related below commit.
+'Better, consistent definition of AID_SHARED_GID.
+sha : 53d37ba23f4805dc81849595d18160eac7e75439
+
+In order to calculte app size, StorageStatsService call
+queryStatsForPackage method and if the pacakge is multiple package
+which have shared UID and SystemUID, appId is '0' as USER_SYSTEM.
+As a result, when calculate dalvik, the size is measure of all files
+for root gid
+
+Solution:
+Consider root_gid for shared_gid when calculate dalvik-cache for appsize
+Test: manual - checked app size in setting
+
+Change-Id: Ia08b2a48ae2759fc41cb329272bd5d5a2acc02b0
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+---
+ cmds/installd/InstalldNativeService.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmds/installd/InstalldNativeService.cpp b/cmds/installd/InstalldNativeService.cpp
+index 8a79ee17a..796767115 100644
+--- a/cmds/installd/InstalldNativeService.cpp
++++ b/cmds/installd/InstalldNativeService.cpp
+@@ -1444,7 +1444,7 @@ binder::Status InstalldNativeService::getAppSize(const std::unique_ptr<std::stri
+         if (!uuid) {
+             ATRACE_BEGIN("dalvik");
+             int32_t sharedGid = multiuser_get_shared_gid(0, appId);
+-            if (sharedGid != -1) {
++            if (sharedGid != -1 && sharedGid != 0) {
+                 calculate_tree_size(create_data_dalvik_cache_path(), &stats.codeSize,
+                         sharedGid, -1);
+             }
+-- 
+2.11.0
+

@@ -1,0 +1,46 @@
+From d72aa3b5f12d92d620784433af0b0a4a252fe440 Mon Sep 17 00:00:00 2001
+From: Miguel Martinez <slverwolf@gmail.com>
+Date: Wed, 7 Mar 2018 09:02:47 -0600
+Subject: [PATCH 4/7] opengl/vulkan: build with O3
+
+Change-Id: Ib44a225a61c6bf1b04b30543a05b961eed1a880b
+---
+ opengl/libs/Android.bp      | 2 ++
+ vulkan/libvulkan/Android.bp | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/opengl/libs/Android.bp b/opengl/libs/Android.bp
+index 3ce13aab6..20c4705e7 100644
+--- a/opengl/libs/Android.bp
++++ b/opengl/libs/Android.bp
+@@ -53,6 +53,7 @@ ndk_library {
+ cc_defaults {
+     name: "gl_libs_defaults",
+     cflags: [
++	"-O3",
+         "-DGL_GLEXT_PROTOTYPES",
+         "-DEGL_EGLEXT_PROTOTYPES",
+         "-fvisibility=hidden",
+@@ -86,6 +87,7 @@ cc_defaults {
+     name: "egl_libs_defaults",
+     defaults: ["gl_libs_defaults"],
+     cflags: [
++	"-O3",
+         "-DLOG_TAG=\"libEGL\"",
+     ],
+     shared_libs: [
+diff --git a/vulkan/libvulkan/Android.bp b/vulkan/libvulkan/Android.bp
+index 5f9b357a3..454c873b2 100644
+--- a/vulkan/libvulkan/Android.bp
++++ b/vulkan/libvulkan/Android.bp
+@@ -28,6 +28,7 @@ cc_library_shared {
+     },
+ 
+     cflags: [
++	"-O3",
+         "-DLOG_TAG=\"vulkan\"",
+         "-DVK_USE_PLATFORM_ANDROID_KHR",
+         "-DVK_NO_PROTOTYPES",
+-- 
+2.11.0
+

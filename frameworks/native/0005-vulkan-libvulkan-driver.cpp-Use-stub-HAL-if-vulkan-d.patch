@@ -1,0 +1,32 @@
+From f1c461eef40946706da13c38485cbf7acb1aaf8f Mon Sep 17 00:00:00 2001
+From: Miguel Martinez <slverwolf@gmail.com>
+Date: Wed, 7 Mar 2018 09:03:16 -0600
+Subject: [PATCH 5/7] vulkan/libvulkan/driver.cpp: Use stub HAL if vulkan
+ disabled
+
+Change-Id: I875cbe790b91544f6553a46aef3d642cff0f58a0
+---
+ vulkan/libvulkan/driver.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/vulkan/libvulkan/driver.cpp b/vulkan/libvulkan/driver.cpp
+index 947a2f7bf..70ac01499 100644
+--- a/vulkan/libvulkan/driver.cpp
++++ b/vulkan/libvulkan/driver.cpp
+@@ -212,6 +212,13 @@ bool Hal::Open() {
+     int result;
+     const hwvulkan_module_t* module = nullptr;
+ 
++    // Use stub HAL if vulkan is disabled
++    bool disableVulkan = property_get_bool("persist.graphics.vulkan.disable", false);
++    if (disableVulkan == true) {
++        ALOGI("no Vulkan HAL present, using stub HAL");
++        return true;
++    }
++
+     result = LoadUpdatedDriver(&module);
+     if (result == -ENOENT) {
+         result = LoadBuiltinDriver(&module);
+-- 
+2.11.0
+

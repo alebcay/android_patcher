@@ -1,0 +1,37 @@
+From 4b32b9b65c71200cc60c1db80fb8f2d9c4cd0f76 Mon Sep 17 00:00:00 2001
+From: Miguel Martinez <slverwolf@gmail.com>
+Date: Wed, 7 Mar 2018 08:58:24 -0600
+Subject: [PATCH 3/7] cmds/atrace/atrace_userdebug: chmod filemap not pagecache
+
+pagecache doesn't exit..
+
+Change-Id: Ie6ee660b438ff5e4c890ba3d39cacdb057a8d8d5
+---
+ cmds/atrace/atrace_userdebug.rc | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/cmds/atrace/atrace_userdebug.rc b/cmds/atrace/atrace_userdebug.rc
+index 5fd28e246..103e3f0bb 100644
+--- a/cmds/atrace/atrace_userdebug.rc
++++ b/cmds/atrace/atrace_userdebug.rc
+@@ -7,7 +7,7 @@ on post-fs
+     chown root shell /sys/kernel/debug/tracing/events/sync/enable
+     chown root shell /sys/kernel/debug/tracing/events/workqueue/enable
+     chown root shell /sys/kernel/debug/tracing/events/regulator/enable
+-    chown root shell /sys/kernel/debug/tracing/events/pagecache/enable
++    chown root shell /sys/kernel/debug/tracing/events/filemap/enable
+ 
+     # irq
+     chown root shell /sys/kernel/debug/tracing/events/irq/enable
+@@ -28,7 +28,7 @@ on post-fs
+     chmod 0664 /sys/kernel/debug/tracing/events/sync/enable
+     chmod 0664 /sys/kernel/debug/tracing/events/workqueue/enable
+     chmod 0664 /sys/kernel/debug/tracing/events/regulator/enable
+-    chmod 0664 /sys/kernel/debug/tracing/events/pagecache/enable
++    chmod 0664 /sys/kernel/debug/tracing/events/filemap/enable
+ 
+     # irq
+     chmod 0664 /sys/kernel/debug/tracing/events/irq/enable
+-- 
+2.11.0
+

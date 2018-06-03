@@ -1,0 +1,39 @@
+From 7726e46a5b1e10c939c5a16ca173f85c76406908 Mon Sep 17 00:00:00 2001
+From: maxwen <max.weninger@gmail.com>
+Date: Wed, 17 Jan 2018 23:42:59 +0100
+Subject: [PATCH 2/2] libstagefright: bring back certain 64bit variants for
+ software codecs
+
+needed for QCOM WFD solution
+
+Change-Id: Id0cfe7cb9905a68785c7caf9479e6703e73e17f2
+---
+ media/libstagefright/codecs/aacdec/Android.bp | 1 -
+ media/libstagefright/codecs/aacenc/Android.bp | 1 -
+ 2 files changed, 2 deletions(-)
+
+diff --git a/media/libstagefright/codecs/aacdec/Android.bp b/media/libstagefright/codecs/aacdec/Android.bp
+index 21c00a1bb..1daaf494c 100644
+--- a/media/libstagefright/codecs/aacdec/Android.bp
++++ b/media/libstagefright/codecs/aacdec/Android.bp
+@@ -37,5 +37,4 @@ cc_library_shared {
+         "libcutils",
+         "liblog",
+     ],
+-    compile_multilib: "32",
+ }
+diff --git a/media/libstagefright/codecs/aacenc/Android.bp b/media/libstagefright/codecs/aacenc/Android.bp
+index 1b4e35c16..c0aa8916a 100644
+--- a/media/libstagefright/codecs/aacenc/Android.bp
++++ b/media/libstagefright/codecs/aacenc/Android.bp
+@@ -145,7 +145,6 @@ cc_library_shared {
+         "libutils",
+         "liblog",
+     ],
+-    compile_multilib: "32",
+ }
+ 
+ cc_library_shared {
+-- 
+2.11.0
+

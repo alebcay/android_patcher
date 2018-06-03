@@ -1,0 +1,65 @@
+From 9aaecf10d0d5e6bdbcf4b01ba8395c00950de490 Mon Sep 17 00:00:00 2001
+From: Isaac Chen <ycchen@google.com>
+Date: Tue, 12 Sep 2017 16:53:42 +0800
+Subject: [PATCH 1/2] Enable 32-bit armv8 NEON for aac/amrwb/h264 codecs
+
+Since ARM neon instructions were only used on armv7-a-neon
+architecture variant, the default implementations for these
+codecs don't use these advanced SIMD instructions.
+
+Bug: 65568372
+Test: lunch aosp_arm64; emulator # on oc-mr1-dev; boot to home screen
+      Check neon code is included in the following libraries:
+      - libstagefright_aaeenc.a
+      - libstagefright_amrwbenc.a
+      - libstagefright_soft_h264dec.so
+Change-Id: Ia7a6097425541cb59fc470eac04e9c935be88325
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+---
+ media/libstagefright/codecs/aacenc/Android.bp      | 2 +-
+ media/libstagefright/codecs/amrwbenc/Android.bp    | 2 +-
+ media/libstagefright/codecs/on2/h264dec/Android.bp | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/media/libstagefright/codecs/aacenc/Android.bp b/media/libstagefright/codecs/aacenc/Android.bp
+index fb368c236..1b4e35c16 100644
+--- a/media/libstagefright/codecs/aacenc/Android.bp
++++ b/media/libstagefright/codecs/aacenc/Android.bp
+@@ -56,7 +56,7 @@ cc_library_static {
+ 
+             instruction_set: "arm",
+ 
+-            armv7_a_neon: {
++            neon: {
+                 exclude_srcs: [
+                     "src/asm/ARMV5E/PrePostMDCT_v5.s",
+                     "src/asm/ARMV5E/R4R8First_v5.s",
+diff --git a/media/libstagefright/codecs/amrwbenc/Android.bp b/media/libstagefright/codecs/amrwbenc/Android.bp
+index 89689917c..b6f637feb 100644
+--- a/media/libstagefright/codecs/amrwbenc/Android.bp
++++ b/media/libstagefright/codecs/amrwbenc/Android.bp
+@@ -76,7 +76,7 @@ cc_library_static {
+ 
+             instruction_set: "arm",
+ 
+-            armv7_a_neon: {
++            neon: {
+                 exclude_srcs: [
+                     "src/asm/ARMV5E/convolve_opt.s",
+                     "src/asm/ARMV5E/cor_h_vec_opt.s",
+diff --git a/media/libstagefright/codecs/on2/h264dec/Android.bp b/media/libstagefright/codecs/on2/h264dec/Android.bp
+index 95c20757d..6d558b633 100644
+--- a/media/libstagefright/codecs/on2/h264dec/Android.bp
++++ b/media/libstagefright/codecs/on2/h264dec/Android.bp
+@@ -35,7 +35,7 @@ cc_library_shared {
+         arm: {
+             instruction_set: "arm",
+ 
+-            armv7_a_neon: {
++            neon: {
+                 cflags: [
+                     "-DH264DEC_NEON",
+                     "-DH264DEC_OMXDL",
+-- 
+2.11.0
+

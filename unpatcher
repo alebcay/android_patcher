@@ -15,5 +15,6 @@ reset	"build/make"
 reset	"bionic"
 reset	"device/motorola/sanders"
 reset	"kernel/motorola/msm8953"
+reset	"frameworks/av"
 
 popd >/dev/null 2>&1

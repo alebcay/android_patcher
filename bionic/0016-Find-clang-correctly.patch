@@ -1,7 +1,7 @@
-From 18db1b33b035170d31c14037dcb06e78829c7195 Mon Sep 17 00:00:00 2001
+From c82b7313caf0534c5b8977caef839a60a8a67933 Mon Sep 17 00:00:00 2001
 From: Paul Lawrence <paullawrence@google.com>
 Date: Fri, 17 Nov 2017 09:14:26 -0800
-Subject: [PATCH 08/17] Find clang correctly
+Subject: [PATCH 16/23] Find clang correctly
 
 Bug: 66509804
 Test: Now runs with no changes with moves clang

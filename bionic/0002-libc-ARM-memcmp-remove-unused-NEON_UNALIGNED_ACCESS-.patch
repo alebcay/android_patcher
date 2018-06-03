@@ -1,0 +1,30 @@
+From f9fa092737b33115770598ce9c8c2d76c08720fc Mon Sep 17 00:00:00 2001
+From: Jake Weinstein <xboxlover360@gmail.com>
+Date: Sun, 25 Oct 2015 01:13:47 +0000
+Subject: [PATCH 02/23] libc: ARM: memcmp: remove unused NEON_UNALIGNED_ACCESS
+ flag
+
+* this code can safely run on all NEON devices (thank you to Kyle Repinski, MWisBest)
+
+Change-Id: I887d4eabc46efeb5c77c7aee11172e16fe7b5a24
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+---
+ libc/arch-arm/generic/bionic/memcmp.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libc/arch-arm/generic/bionic/memcmp.S b/libc/arch-arm/generic/bionic/memcmp.S
+index e648720e0..9fd72e9ea 100644
+--- a/libc/arch-arm/generic/bionic/memcmp.S
++++ b/libc/arch-arm/generic/bionic/memcmp.S
+@@ -62,7 +62,7 @@ ENTRY(memcmp)
+  * Neon optimization
+  * Comparing 32 bytes at a time
+  */
+-#if defined(__ARM_NEON__) && defined(NEON_UNALIGNED_ACCESS)
++#if defined(__ARM_NEON__)
+         subs        r2, r2, #32
+         blo         3f
+ 
+-- 
+2.11.0
+

@@ -1,7 +1,7 @@
-From 9a45d8cb26609f40752b2d17747614e4ebaa5e53 Mon Sep 17 00:00:00 2001
+From bcfeea5efa167ea711a84c94cab8e341d8fac975 Mon Sep 17 00:00:00 2001
 From: Isaac Chen <ycchen@google.com>
 Date: Tue, 12 Sep 2017 16:47:54 +0800
-Subject: [PATCH 01/17] Enable 32-bit armv8 NEON for libm
+Subject: [PATCH 11/23] Enable 32-bit armv8 NEON for libm
 
 Since ARM neon instructions were only used on armv7-a-neon architecture
 variant, the default implementation for 32-bit armv8-a cores doesn't
@@ -19,10 +19,10 @@ Change-Id: I2084dbdb12e252b06bba5adc65adb59e97a99332
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/libm/Android.bp b/libm/Android.bp
-index 75e89572b..e5cb02931 100644
+index 0bdab940a..1d8edd7b6 100644
 --- a/libm/Android.bp
 +++ b/libm/Android.bp
-@@ -283,7 +283,7 @@ cc_library {
+@@ -285,7 +285,7 @@ cc_library {
              srcs: [
                  "arm/fenv.c",
              ],

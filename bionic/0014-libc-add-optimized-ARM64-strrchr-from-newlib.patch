@@ -1,7 +1,7 @@
-From 82e4f669c079d15f74d61779b1980b1c336844f0 Mon Sep 17 00:00:00 2001
+From ad80799047c454b3758ac447d326ede73906f696 Mon Sep 17 00:00:00 2001
 From: Jake Weinstein <xboxlover360@gmail.com>
 Date: Thu, 4 May 2017 02:43:44 -0400
-Subject: [PATCH 06/17] libc: add optimized ARM64 strrchr from newlib
+Subject: [PATCH 14/23] libc: add optimized ARM64 strrchr from newlib
 
 Test: make otapackage
 
@@ -34,7 +34,7 @@ index 6717095b9..39412f24b 100644
              denver64: {
                  srcs: [
 diff --git a/libc/NOTICE b/libc/NOTICE
-index 492d4158c..396d618c3 100644
+index 79b1a70eb..b6a4fa643 100644
 --- a/libc/NOTICE
 +++ b/libc/NOTICE
 @@ -1,5 +1,32 @@

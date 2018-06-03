@@ -1,7 +1,7 @@
-From aa1be4f735177e85b05192346b306daefb08c5fa Mon Sep 17 00:00:00 2001
+From 641c44fb4c5d69a2c105825b375ffe8b664530ae Mon Sep 17 00:00:00 2001
 From: Elliott Hughes <enh@google.com>
 Date: Tue, 24 Oct 2017 14:23:47 -0700
-Subject: [PATCH 04/17] Remove an obsolete aarch64 hack.
+Subject: [PATCH 13/23] Remove an obsolete aarch64 hack.
 
 e210488e0d4082b9a0c55195c22191f29ed56bf8 in 2013 added this, which seems
 to have been a workaround for the linker at the time that was never removed.

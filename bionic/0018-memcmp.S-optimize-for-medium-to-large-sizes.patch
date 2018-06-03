@@ -1,7 +1,7 @@
-From ffb664df12d228c88cd17050a3371c19b49dc5f7 Mon Sep 17 00:00:00 2001
+From 92e5095474f623dfd54d3ef69a8fb84fee37a85e Mon Sep 17 00:00:00 2001
 From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
 Date: Tue, 13 Mar 2018 15:31:46 +0000
-Subject: [PATCH 10/17] [AArch64]memcmp.S: optimize for medium to large sizes
+Subject: [PATCH 18/23] memcmp.S: optimize for medium to large sizes
 
 This improved memcmp provides a fast path for compares up to 16 bytes
 and then compares 16 bytes at a time, thus optimizing loads from both

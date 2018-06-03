@@ -1,7 +1,7 @@
-From bcbdbc0940d78e558b7eead7e78334431e9c562b Mon Sep 17 00:00:00 2001
+From 350967b2f81751e9fe92d146739a65514d3e607f Mon Sep 17 00:00:00 2001
 From: Sebastian Pop <s.pop@samsung.com>
 Date: Mon, 19 Jun 2017 12:39:02 -0500
-Subject: [PATCH 02/17] [AArch64] Optimized memcmp
+Subject: [PATCH 10/23] [AArch64] Optimized memcmp
 
 Patch written by Wilco Dijkstra submitted for review to newlib:
 https://sourceware.org/ml/newlib/2017/msg00524.html
@@ -270,77 +270,19 @@ BM_string_memcmp_unaligned/16k       55877 ns      55874 ns      12455   279.645
 BM_string_memcmp_unaligned/32k      112397 ns     112366 ns       6200    278.11MB/s
 BM_string_memcmp_unaligned/64k      223493 ns     223482 ns       3127   279.665MB/s
 
-Test: bionic-benchmarks --benchmark_filter='BM_string_memcmp*'
-
 Change-Id: Ia16a8cf69c68b8c0533f025f03b925c9883bb708
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
 ---
- libc/NOTICE                             |  43 +++---
- libc/arch-arm64/generic/bionic/memcmp.S | 224 ++++++++++++++------------------
- 2 files changed, 121 insertions(+), 146 deletions(-)
+ libc/arch-arm64/generic/bionic/memcmp.S | 289 ++++++++++++--------------------
+ 1 file changed, 105 insertions(+), 184 deletions(-)
 
-diff --git a/libc/NOTICE b/libc/NOTICE
-index 79b1a70eb..492d4158c 100644
---- a/libc/NOTICE
-+++ b/libc/NOTICE
-@@ -5636,30 +5636,31 @@ SUCH DAMAGE.
- 
- -------------------------------------------------------------------
- 
--Copyright (c) 2015 The Linux Foundation. All rights reserved.
-+Copyright (c) 2017 ARM Ltd
-+All rights reserved.
- 
- Redistribution and use in source and binary forms, with or without
--modification, are permitted provided that the following conditions are met:
--    * Redistributions of source code must retain the above copyright
--      notice, this list of conditions and the following disclaimer.
--    * Redistributions in binary form must reproduce the above copyright
--      notice, this list of conditions and the following disclaimer in the
--      documentation and/or other materials provided with the distribution.
--    * Neither the name of The Linux Foundation nor the names of its contributors may
--      be used to endorse or promote products derived from this software
--      without specific prior written permission.
-+modification, are permitted provided that the following conditions
-+are met:
-+1. Redistributions of source code must retain the above copyright
-+   notice, this list of conditions and the following disclaimer.
-+2. Redistributions in binary form must reproduce the above copyright
-+   notice, this list of conditions and the following disclaimer in the
-+   documentation and/or other materials provided with the distribution.
-+3. The name of the company may not be used to endorse or promote
-+   products derived from this software without specific prior written
-+   permission.
- 
--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
--AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
--IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
--ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
--LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
--CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
--SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
--INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
--CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
--ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
--POSSIBILITY OF SUCH DAMAGE.
-+THIS SOFTWARE IS PROVIDED BY ARM LTD ``AS IS'' AND ANY EXPRESS OR IMPLIED
-+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-+IN NO EVENT SHALL ARM LTD BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- 
- -------------------------------------------------------------------
- 
 diff --git a/libc/arch-arm64/generic/bionic/memcmp.S b/libc/arch-arm64/generic/bionic/memcmp.S
-index 3d08ecdaf..3a138bf72 100644
+index 8f2b4c92f..3a138bf72 100644
 --- a/libc/arch-arm64/generic/bionic/memcmp.S
 +++ b/libc/arch-arm64/generic/bionic/memcmp.S
-@@ -1,33 +1,34 @@
+@@ -1,34 +1,34 @@
 -/* Copyright (c) 2014, Linaro Limited
+-   Copyright (c) 2017, Samsung Austin R&D Center
 -   All rights reserved.
 -
 -   Redistribution and use in source and binary forms, with or without
@@ -401,7 +343,7 @@ index 3d08ecdaf..3a138bf72 100644
   */
  
  #include <private/bionic_asm.h>
-@@ -36,120 +37,93 @@
+@@ -37,172 +37,93 @@
  #define src1		x0
  #define src2		x1
  #define limit		x2
@@ -422,18 +364,8 @@ index 3d08ecdaf..3a138bf72 100644
 -#define pos		x11
 -#define limit_wd	x12
 -#define mask		x13
-+#define tmp1		x5
-+
-+/* Small inputs of less than 8 bytes are handled separately.  This allows the
-+   main code to be sped up using unaligned loads since there are now at least
-+   8 bytes to be compared.  If the first 8 bytes are equal, align src1.
-+   This ensures each iteration does at most one unaligned access even if both
-+   src1 and src2 are unaligned, and mutually aligned inputs behave as if
-+   aligned.  After the main loop, process the last 8 bytes using unaligned
-+   accesses.  */
- 
-+.p2align 6
- ENTRY(memcmp)
+-
+-ENTRY(memcmp)
 -	cbz	limit, .Lret0
 -	eor	tmp1, src1, src2
 -	tst	tmp1, #7
@@ -452,25 +384,21 @@ index 3d08ecdaf..3a138bf72 100644
 -	csinv	endloop, diff, xzr, ne	/* Last Dword or differences.  */
 -	cbz	endloop, .Lloop_aligned
 -	/* End of performance-critical section  -- one 64B cache line.  */
-+	subs	limit, limit, 8
-+	b.lo	.Lless8
- 
+-
 -	/* Not reached the limit, must have found a diff.  */
 -	cbnz	limit_wd, .Lnot_limit
-+	/* Limit >= 8, so check first 8 bytes using unaligned loads.  */
-+	ldr	data1, [src1], 8
-+	ldr	data2, [src2], 8
-+	and	tmp1, src1, 7
-+	add	limit, limit, tmp1
-+	cmp	data1, data2
-+	bne	.Lreturn
++#define tmp1		x5
  
 -	/* Limit % 8 == 0 => all bytes significant.  */
 -	ands	limit, limit, #7
 -	b.eq	.Lnot_limit
-+	/* Align src1 and adjust src2 with bytes not yet done.  */
-+	sub	src1, src1, tmp1
-+	sub	src2, src2, tmp1
++/* Small inputs of less than 8 bytes are handled separately.  This allows the
++   main code to be sped up using unaligned loads since there are now at least
++   8 bytes to be compared.  If the first 8 bytes are equal, align src1.
++   This ensures each iteration does at most one unaligned access even if both
++   src1 and src2 are unaligned, and mutually aligned inputs behave as if
++   aligned.  After the main loop, process the last 8 bytes using unaligned
++   accesses.  */
  
 -	lsl	limit, limit, #3	/* Bits -> bytes.  */
 -	mov	mask, #~0
@@ -481,11 +409,32 @@ index 3d08ecdaf..3a138bf72 100644
 -#endif
 -	bic	data1, data1, mask
 -	bic	data2, data2, mask
-+	subs	limit, limit, 8
-+	b.ls	.Llast_bytes
- 
+-
 -	orr	diff, diff, mask
 -.Lnot_limit:
+-
+-#ifndef	__AARCH64EB__
+-	rev	diff, diff
++.p2align 6
++ENTRY(memcmp)
++	subs	limit, limit, 8
++	b.lo	.Lless8
++
++	/* Limit >= 8, so check first 8 bytes using unaligned loads.  */
++	ldr	data1, [src1], 8
++	ldr	data2, [src2], 8
++	and	tmp1, src1, 7
++	add	limit, limit, tmp1
++	cmp	data1, data2
++	bne	.Lreturn
++
++	/* Align src1 and adjust src2 with bytes not yet done.  */
++	sub	src1, src1, tmp1
++	sub	src2, src2, tmp1
++
++	subs	limit, limit, 8
++	b.ls	.Llast_bytes
++
 +	/* Loop performing 8 bytes per iteration using aligned src1.
 +	   Limit is pre-decremented by 8 and must be larger than zero.
 +	   Exit if <= 8 bytes left to do or if the data is not equal.  */
@@ -496,9 +445,7 @@ index 3d08ecdaf..3a138bf72 100644
 +	subs	limit, limit, 8
 +	ccmp	data1, data2, 0, hi  /* NZCV = 0b0000.  */
 +	b.eq	.Lloop8
- 
--#ifndef	__AARCH64EB__
--	rev	diff, diff
++
 +	cmp	data1, data2
 +	bne	.Lreturn
 +
@@ -554,23 +501,76 @@ index 3d08ecdaf..3a138bf72 100644
 -.Lret0:
 -	mov	result, #0
 -	ret
-+	cmp     data1, data2
-+.Lret_eq:
-+	cset	result, ne
-+	cneg	result, result, lo
-+        ret
- 
+-
 -	.p2align 6
 -.Lmisaligned8:
+-
+-	cmp	limit, #8
+-	b.lo	.LmisalignedLt8
+-
+-.LunalignedGe8 :
+-
+-	/* Load the first dword with both src potentially unaligned. */
+-	ldr	data1, [src1]
+-	ldr	data2, [src2]
+-
+-	eor	diff, data1, data2	/* Non-zero if differences found. */
+-	cbnz	diff, .Lnot_limit
+-
+-	/* Sources are not aligned: align one of the sources. */
+-
+-	and	tmp1, src1, #0x7
+-	orr	tmp3, xzr, #0x8
+-	sub	pos, tmp3, tmp1
+-
+-	/* Increment SRC pointers by POS so one of the SRC pointers is word-aligned. */
+-	add	src1, src1, pos
+-	add	src2, src2, pos
+-
+-	sub	limit, limit, pos
+-	lsr	limit_wd, limit, #3
+-
+-	cmp limit_wd, #0
+-
+-	/* save #bytes to go back to be able to read 8byte at end
+-	   pos=negative offset position to read 8 bytes when len%8 != 0 */
+-	and	limit, limit, #7
+-	sub	pos, limit, #8
+-
+-	b	.Lstart_part_realigned
+-
+-	.p2align 5
+-.Lloop_part_aligned:
+-	ldr	data1, [src1], #8
+-	ldr	data2, [src2], #8
+-	subs	limit_wd, limit_wd, #1
+-.Lstart_part_realigned:
+-	eor	diff, data1, data2	/* Non-zero if differences found. */
+-	cbnz	diff, .Lnot_limit
+-	b.ne	.Lloop_part_aligned
+-
+-	/* process leftover bytes: read the leftover bytes, starting with
+-	   negative offset - so we can load 8 bytes. */
+-	ldr	data1, [src1, pos]
+-	ldr	data2, [src2, pos]
+-	eor	diff, data1, data2	/* Non-zero if differences found.  */
+-	b .Lnot_limit
+-
+-.LmisalignedLt8:
 -	sub	limit, limit, #1
 -1:
--	/* Perhaps we can do better than this.  */
 -	ldrb	data1w, [src1], #1
 -	ldrb	data2w, [src2], #1
 -	subs	limit, limit, #1
 -	ccmp	data1w, data2w, #0, cs	/* NZCV = 0b0000.  */
 -	b.eq	1b
 -	sub	result, data1, data2
++	cmp     data1, data2
++.Lret_eq:
++	cset	result, ne
++	cneg	result, result, lo
++        ret
++
 +	.p2align 4
 +	/* Compare up to 8 bytes.  Limit is [-8..-1].  */
 +.Lless8:

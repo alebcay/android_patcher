@@ -1,7 +1,7 @@
-From 9c41ab4508959783e904d0839a2965abb52664da Mon Sep 17 00:00:00 2001
+From 5a998f91109099180fc939ab40516dc47e4d5346 Mon Sep 17 00:00:00 2001
 From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
 Date: Thu, 15 Mar 2018 02:36:21 +0000
-Subject: [PATCH 13/17] aarch64/strncmp: Use lsr instead of mov+lsr
+Subject: [PATCH 21/23] aarch64/strncmp: Use lsr instead of mov+lsr
 
 A lsr can do what the mov and lsr did.
 

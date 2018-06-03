@@ -1,7 +1,7 @@
-From d89a359c1fc7466bb5b45306c95221c848fdf576 Mon Sep 17 00:00:00 2001
+From 161665faf3cbbf2a8f3e13ab8929ae043efe06cb Mon Sep 17 00:00:00 2001
 From: Park Ju Hyung <qkrwngud825@gmail.com>
 Date: Fri, 31 Mar 2017 12:06:57 +0900
-Subject: [PATCH 09/17] bionic: strip libc and linker
+Subject: [PATCH 17/23] bionic: strip libc and linker
 
 Change-Id: Id5fce60abc5aa11af16186a01f865b0e4ad76a6e
 Signed-off-by: Park Ju Hyung <qkrwngud825@gmail.com>

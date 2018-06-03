@@ -1,8 +1,7 @@
-From e2e1950940bfcc1eedf994024756f8fd7f794f5d Mon Sep 17 00:00:00 2001
+From 5e787c39286e1e4b9f82b84d1f41a16e99806d35 Mon Sep 17 00:00:00 2001
 From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
 Date: Tue, 13 Mar 2018 14:48:33 +0000
-Subject: [PATCH 11/17] [AArch64]strcmp.S: Improve performance for misaligned
- strings
+Subject: [PATCH 19/23] strcmp.S: Improve performance for misaligned strings
 
 Replace the simple byte-wise compare in the misaligned case with a
 dword compare with page boundary checks in place.  For simplicity I've

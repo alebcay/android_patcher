@@ -1,7 +1,7 @@
-From 237d6d4873d939b5294a736af66c47c430ab7c8b Mon Sep 17 00:00:00 2001
+From 99212998d8a7660a7955c867f46f4abba2d4811a Mon Sep 17 00:00:00 2001
 From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
 Date: Tue, 6 Mar 2018 01:47:00 -0800
-Subject: [PATCH 12/17] aarch64: Improve strncmp for mutually misaligned inputs
+Subject: [PATCH 20/23] aarch64: Improve strncmp for mutually misaligned inputs
 
 The mutually misaligned inputs on aarch64 are compared with a simple
 byte copy, which is not very efficient.  Enhance the comparison

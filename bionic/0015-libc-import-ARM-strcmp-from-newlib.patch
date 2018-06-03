@@ -1,7 +1,7 @@
-From 9748051941b1985866b69dc479ece5a32a0b90ae Mon Sep 17 00:00:00 2001
+From f860380dbf23b75641408725654b54c65730e6df Mon Sep 17 00:00:00 2001
 From: Jake Weinstein <xboxlover360@gmail.com>
 Date: Sat, 6 May 2017 23:22:58 -0400
-Subject: [PATCH 07/17] libc: import ARM strcmp from newlib
+Subject: [PATCH 15/23] libc: import ARM strcmp from newlib
 
 * Current version is also based on newlib, but an older revision
 
@@ -92,7 +92,7 @@ index 39412f24b..17e7fa7c3 100644
                      "arch-arm/cortex-a15/bionic/strlen.S",
  
 diff --git a/libc/NOTICE b/libc/NOTICE
-index 396d618c3..9bf98a767 100644
+index b6a4fa643..e481fac4a 100644
 --- a/libc/NOTICE
 +++ b/libc/NOTICE
 @@ -5341,6 +5341,34 @@ Copyright (c) 2012-2013, Linaro Limited

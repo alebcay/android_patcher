@@ -1,7 +1,7 @@
-From 78a76c3e72b8d1cdacc0422d91765deeac19d106 Mon Sep 17 00:00:00 2001
+From a1eb5f4b3f0f881524177e68c0406eebecb04130 Mon Sep 17 00:00:00 2001
 From: Anton Kirilov <anton.kirilov@linaro.org>
 Date: Fri, 11 Aug 2017 15:00:19 +0100
-Subject: [PATCH 03/17] Optimize the clone() system call on ARM(64).
+Subject: [PATCH 12/23] Optimize the clone() system call on ARM(64).
 
 The kernel preserves all register values except R0/X0 and SP,
 so there is no need to push arguments on the stack.

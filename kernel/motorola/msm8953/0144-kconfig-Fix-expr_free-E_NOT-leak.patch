@@ -1,0 +1,58 @@
+From a3ce0e201501b076ebb27fead438b211583e7b09 Mon Sep 17 00:00:00 2001
+From: Ulf Magnusson <ulfalizer@gmail.com>
+Date: Sun, 8 Oct 2017 19:35:45 +0200
+Subject: [PATCH 144/307] kconfig: Fix expr_free() E_NOT leak
+
+[ Upstream commit 5b1374b3b3c2fc4f63a398adfa446fb8eff791a4 ]
+
+Only the E_NOT operand and not the E_NOT node itself was freed, due to
+accidentally returning too early in expr_free(). Outline of leak:
+
+	switch (e->type) {
+	...
+	case E_NOT:
+		expr_free(e->left.expr);
+		return;
+	...
+	}
+	*Never reached, 'e' leaked*
+	free(e);
+
+Fix by changing the 'return' to a 'break'.
+
+Summary from Valgrind on 'menuconfig' (ARCH=x86) before the fix:
+
+	LEAK SUMMARY:
+	   definitely lost: 44,448 bytes in 1,852 blocks
+	   ...
+
+Summary after the fix:
+
+	LEAK SUMMARY:
+	   definitely lost: 1,608 bytes in 67 blocks
+	   ...
+
+Signed-off-by: Ulf Magnusson <ulfalizer@gmail.com>
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ scripts/kconfig/expr.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/kconfig/expr.c b/scripts/kconfig/expr.c
+index d6626521f9b9..23cd5ce862f7 100644
+--- a/scripts/kconfig/expr.c
++++ b/scripts/kconfig/expr.c
+@@ -106,7 +106,7 @@ void expr_free(struct expr *e)
+ 		break;
+ 	case E_NOT:
+ 		expr_free(e->left.expr);
+-		return;
++		break;
+ 	case E_EQUAL:
+ 	case E_UNEQUAL:
+ 		break;
+-- 
+2.14.1
+

@@ -1,0 +1,40 @@
+From 0e7afe7029f8a605615478c53ab0a4e471ac41e6 Mon Sep 17 00:00:00 2001
+From: Liu Bo <bo.liu@linux.alibaba.com>
+Date: Tue, 3 Apr 2018 01:59:48 +0800
+Subject: [PATCH 239/307] Btrfs: bail out on error during replay_dir_deletes
+
+[ Upstream commit b98def7ca6e152ee55e36863dddf6f41f12d1dc6 ]
+
+If errors were returned by btrfs_next_leaf(), replay_dir_deletes needs
+to bail out, otherwise @ret would be forced to be 0 after 'break;' and
+the caller won't be aware of it.
+
+Fixes: e02119d5a7b4 ("Btrfs: Add a write ahead tree log to optimize synchronous operations")
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+Signed-off-by: Liu Bo <bo.liu@linux.alibaba.com>
+Signed-off-by: David Sterba <dsterba@suse.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/btrfs/tree-log.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/fs/btrfs/tree-log.c b/fs/btrfs/tree-log.c
+index cf5d6825d80f..584120eb4df6 100644
+--- a/fs/btrfs/tree-log.c
++++ b/fs/btrfs/tree-log.c
+@@ -1983,8 +1983,10 @@ again:
+ 			nritems = btrfs_header_nritems(path->nodes[0]);
+ 			if (path->slots[0] >= nritems) {
+ 				ret = btrfs_next_leaf(root, path);
+-				if (ret)
++				if (ret == 1)
+ 					break;
++				else if (ret < 0)
++					goto out;
+ 			}
+ 			btrfs_item_key_to_cpu(path->nodes[0], &found_key,
+ 					      path->slots[0]);
+-- 
+2.14.1
+

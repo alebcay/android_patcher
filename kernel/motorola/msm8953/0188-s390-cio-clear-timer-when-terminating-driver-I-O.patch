@@ -1,0 +1,34 @@
+From c963e567a4e1145ab82ca3490a3b14a663723bd3 Mon Sep 17 00:00:00 2001
+From: Sebastian Ott <sebott@linux.vnet.ibm.com>
+Date: Mon, 12 Feb 2018 12:01:03 +0100
+Subject: [PATCH 188/307] s390/cio: clear timer when terminating driver I/O
+
+[ Upstream commit 410d5e13e7638bc146321671e223d56495fbf3c7 ]
+
+When we terminate driver I/O (because we need to stop using a certain
+channel path) we also need to ensure that a timer (which may have been
+set up using ccw_device_start_timeout) is cleared.
+
+Signed-off-by: Sebastian Ott <sebott@linux.vnet.ibm.com>
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/s390/cio/device_fsm.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/s390/cio/device_fsm.c b/drivers/s390/cio/device_fsm.c
+index 600a379727f1..8febd61e1e55 100644
+--- a/drivers/s390/cio/device_fsm.c
++++ b/drivers/s390/cio/device_fsm.c
+@@ -885,6 +885,7 @@ void ccw_device_kill_io(struct ccw_device *cdev)
+ {
+ 	int ret;
+ 
++	ccw_device_set_timeout(cdev, 0);
+ 	cdev->private->iretry = 255;
+ 	cdev->private->async_kill_io_rc = -EIO;
+ 	ret = ccw_device_cancel_halt_clear(cdev);
+-- 
+2.14.1
+

@@ -1,0 +1,50 @@
+From aed998ae8875583afc51d33a8f2d65ae8e7e0e02 Mon Sep 17 00:00:00 2001
+From: Roger Pau Monne <roger.pau@citrix.com>
+Date: Wed, 28 Feb 2018 09:19:03 +0000
+Subject: [PATCH 204/307] xen/pirq: fix error path cleanup when binding MSIs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+[ Upstream commit 910f8befdf5bccf25287d9f1743e3e546bcb7ce0 ]
+
+Current cleanup in the error path of xen_bind_pirq_msi_to_irq is
+wrong. First of all there's an off-by-one in the cleanup loop, which
+can lead to unbinding wrong IRQs.
+
+Secondly IRQs not bound won't be freed, thus leaking IRQ numbers.
+
+Note that there's no need to differentiate between bound and unbound
+IRQs when freeing them, __unbind_from_irq will deal with both of them
+correctly.
+
+Fixes: 4892c9b4ada9f9 ("xen: add support for MSI message groups")
+Reported-by: Hooman Mirhadi <mirhadih@amazon.com>
+Signed-off-by: Roger Pau Monné <roger.pau@citrix.com>
+Reviewed-by: Amit Shah <aams@amazon.com>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/xen/events/events_base.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/xen/events/events_base.c b/drivers/xen/events/events_base.c
+index 4bf7a34f6a4c..e2db7a774687 100644
+--- a/drivers/xen/events/events_base.c
++++ b/drivers/xen/events/events_base.c
+@@ -763,8 +763,8 @@ out:
+ 	mutex_unlock(&irq_mapping_update_lock);
+ 	return irq;
+ error_irq:
+-	for (; i >= 0; i--)
+-		__unbind_from_irq(irq + i);
++	while (nvec--)
++		__unbind_from_irq(irq + nvec);
+ 	mutex_unlock(&irq_mapping_update_lock);
+ 	return ret;
+ }
+-- 
+2.14.1
+

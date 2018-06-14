@@ -15,18 +15,18 @@ apply() {
 pushd `dirname "$0"` >/dev/null 2>&1
 
 reset	"frameworks/base"
-reset	"system/core"
+# reset	"system/core"
 reset	"build/make"
-reset	"bionic"
+# reset	"bionic"
 reset	"device/motorola/sanders"
 reset	"kernel/motorola/msm8953"
 reset	"frameworks/av"
 reset	"frameworks/native"
 
 apply	"frameworks/base"
-apply	"system/core"
+# apply	"system/core"
 apply	"build/make"
-apply	"bionic"
+# apply	"bionic"
 apply	"device/motorola/sanders"
 apply	"kernel/motorola/msm8953"
 apply	"frameworks/av"

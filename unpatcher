@@ -10,9 +10,9 @@ reset() {
 pushd `dirname "$0"` >/dev/null 2>&1
 
 reset	"frameworks/base"
-reset	"system/core"
+# reset	"system/core"
 reset	"build/make"
-reset	"bionic"
+# reset	"bionic"
 reset	"device/motorola/sanders"
 reset	"kernel/motorola/msm8953"
 reset	"frameworks/av"

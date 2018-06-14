@@ -1,0 +1,61 @@
+From e70ec2e5253743c941079666162ce6ee29f54238 Mon Sep 17 00:00:00 2001
+From: Robert Rosengren <robert.rosengren@axis.com>
+Date: Mon, 26 Mar 2018 07:24:49 +0200
+Subject: [PATCH 59/77] ALSA: aloop: Mark paused device as inactive
+
+commit 306a4f3ca7f3c7dfa473ebd19d66e40e59d99734 upstream.
+
+Show paused ALSA aloop device as inactive, i.e. the control
+"PCM Slave Active" set as false. Notification sent upon state change.
+
+This makes it possible for client capturing from aloop device to know if
+data is expected. Without it the client expects data even if playback
+is paused.
+
+Signed-off-by: Robert Rosengren <robert.rosengren@axis.com>
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ sound/drivers/aloop.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/sound/drivers/aloop.c b/sound/drivers/aloop.c
+index 6c5b4e057521..23a2ac84eb51 100644
+--- a/sound/drivers/aloop.c
++++ b/sound/drivers/aloop.c
+@@ -297,6 +297,8 @@ static int loopback_trigger(struct snd_pcm_substream *substream, int cmd)
+ 		cable->pause |= stream;
+ 		loopback_timer_stop(dpcm);
+ 		spin_unlock(&cable->lock);
++		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++			loopback_active_notify(dpcm);
+ 		break;
+ 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+ 	case SNDRV_PCM_TRIGGER_RESUME:
+@@ -305,6 +307,8 @@ static int loopback_trigger(struct snd_pcm_substream *substream, int cmd)
+ 		cable->pause &= ~stream;
+ 		loopback_timer_start(dpcm);
+ 		spin_unlock(&cable->lock);
++		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++			loopback_active_notify(dpcm);
+ 		break;
+ 	default:
+ 		return -EINVAL;
+@@ -894,9 +898,11 @@ static int loopback_active_get(struct snd_kcontrol *kcontrol,
+ 			[kcontrol->id.subdevice][kcontrol->id.device ^ 1];
+ 	unsigned int val = 0;
+ 
+-	if (cable != NULL)
+-		val = (cable->running & (1 << SNDRV_PCM_STREAM_PLAYBACK)) ?
+-									1 : 0;
++	if (cable != NULL) {
++		unsigned int running = cable->running ^ cable->pause;
++
++		val = (running & (1 << SNDRV_PCM_STREAM_PLAYBACK)) ? 1 : 0;
++	}
+ 	ucontrol->value.integer.value[0] = val;
+ 	return 0;
+ }
+-- 
+2.14.1
+

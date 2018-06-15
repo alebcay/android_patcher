@@ -1,0 +1,29 @@
+From 1183e13e09a227c9b08015a94a33aee15f176026 Mon Sep 17 00:00:00 2001
+From: Joey <joey@lineageos.org>
+Date: Wed, 24 Jan 2018 11:24:37 +0100
+Subject: [PATCH 4/5] sanders: build textclassifier
+
+Change-Id: I50d8173d24c4cab773824107b98929dbbc469783
+Signed-off-by: Joey <joey@lineageos.org>
+---
+ device.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/device.mk b/device.mk
+index eb5fe42..0ea5ee4 100644
+--- a/device.mk
++++ b/device.mk
+@@ -405,6 +405,10 @@ PRODUCT_BOOT_JARS += \
+ PRODUCT_COPY_FILES += \
+     $(LOCAL_PATH)/configs/thermal-engine-sanders.conf:system/vendor/etc/thermal-engine.conf
+ 
++# TextClassifier smart selection model files
++PRODUCT_PACKAGES += \
++    textclassifier.smartselection.bundle1
++
+ # USB HAL
+ PRODUCT_PACKAGES += \
+     android.hardware.usb@1.0-service
+-- 
+2.11.0
+

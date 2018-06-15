@@ -1,0 +1,25 @@
+From 8389528bc981177bf6427f06427ba87b447593ae Mon Sep 17 00:00:00 2001
+From: Sebastian <kjjjnob.seba@gmail.com>
+Date: Wed, 30 May 2018 17:07:44 -0300
+Subject: [PATCH 5/5] enable and fix EIS stabilization
+
+help with stabilization on Camera from AOSP and GoogleCamera
+---
+ system.prop | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/system.prop b/system.prop
+index ccaac6b..b1c4465 100644
+--- a/system.prop
++++ b/system.prop
+@@ -75,6 +75,7 @@ vendor.vidc.dec.downscalar_width=1920
+ vendor.vidc.dec.downscalar_height=1088
+ media.camera.ts.monotonic=1
+ persist.camera.time.monotonic=1
++persist.camera.eis.enable=1
+ 
+ # CNE
+ persist.cne.feature=1
+-- 
+2.11.0
+

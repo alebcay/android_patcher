@@ -1,0 +1,166 @@
+From e2712ef293766d14d2bd5a93efe17ef052f40ca0 Mon Sep 17 00:00:00 2001
+From: Artem Serov <artem.serov@linaro.org>
+Date: Mon, 20 Nov 2017 11:51:05 +0000
+Subject: [PATCH 5/6] ARM64: Workaround for the callee saved FP registers and
+ SIMD.
+
+Treat as scheduling barriers those vector instructions whose live
+ranges exceed the vectorized loop boundaries. This is a workaround
+for the lack of notion of SIMD register in the compiler; around a
+call we have to save/restore all live SIMD&FP registers (only
+lower 64 bits of SIMD&FP registers are callee saved) so don't
+reorder such vector instructions.
+
+Test: 706-checker-scheduler, test-art-host, test-art-target
+Bug: 69667779
+
+BenzoEdit: Removed two instructions that don't need a workaround
+Change-Id: I31e57518339d41545a0c519f7299afe381a8286c
+
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ compiler/optimizing/nodes_vector.h       | 10 +++++
+ compiler/optimizing/scheduler.h          |  5 +++
+ compiler/optimizing/scheduler_arm64.h    | 12 ++++++
+ test/706-checker-scheduler/src/Main.java | 64 ++++++++++++++++++++++++++++++++
+ 4 files changed, 91 insertions(+)
+
+diff --git a/compiler/optimizing/nodes_vector.h b/compiler/optimizing/nodes_vector.h
+index 6261171a00..72885d9d88 100644
+--- a/compiler/optimizing/nodes_vector.h
++++ b/compiler/optimizing/nodes_vector.h
+@@ -102,6 +102,16 @@ class HVecOperation : public HVariableInputSizeInstruction {
+ 
+   // Assumes vector nodes cannot be moved by default. Each concrete implementation
+   // that can be moved should override this method and return true.
++  //
++  // Note: similar approach is used for instruction scheduling (if it is turned on for the target):
++  // by default HScheduler::IsSchedulable returns false for a particular HVecOperation.
++  // HScheduler${ARCH}::IsSchedulable can be overridden to return true for an instruction (see
++  // scheduler_arm64.h for example) if it is safe to schedule it; in this case one *must* also
++  // look at/update HScheduler${ARCH}::IsSchedulingBarrier for this instruction.
++  //
++  // Note: For newly introduced vector instructions HScheduler${ARCH}::IsSchedulingBarrier must be
++  // altered to return true if the instruction might reside outside the SIMD loop body since SIMD
++  // registers are not kept alive across vector loop boundaries (yet).
+   bool CanBeMoved() const OVERRIDE { return false; }
+ 
+   // Tests if all data of a vector node (vector length and packed type) is equal.
+diff --git a/compiler/optimizing/scheduler.h b/compiler/optimizing/scheduler.h
+index 930a2c82cf..323f7cf1cc 100644
+--- a/compiler/optimizing/scheduler.h
++++ b/compiler/optimizing/scheduler.h
+@@ -452,6 +452,11 @@ class HScheduler {
+   // containing basic block from being scheduled.
+   // This method is used to restrict scheduling to instructions that we know are
+   // safe to handle.
++  //
++  // For newly introduced instructions by default HScheduler::IsSchedulable returns false.
++  // HScheduler${ARCH}::IsSchedulable can be overridden to return true for an instruction (see
++  // scheduler_arm64.h for example) if it is safe to schedule it; in this case one *must* also
++  // look at/update HScheduler${ARCH}::IsSchedulingBarrier for this instruction.
+   virtual bool IsSchedulable(const HInstruction* instruction) const;
+   bool IsSchedulable(const HBasicBlock* block) const;
+ 
+diff --git a/compiler/optimizing/scheduler_arm64.h b/compiler/optimizing/scheduler_arm64.h
+index 63d5b7d6b6..529d7ce4a9 100644
+--- a/compiler/optimizing/scheduler_arm64.h
++++ b/compiler/optimizing/scheduler_arm64.h
+@@ -150,6 +150,18 @@ class HSchedulerARM64 : public HScheduler {
+ #undef CASE_INSTRUCTION_KIND
+   }
+ 
++  // Treat as scheduling barriers those vector instructions whose live ranges exceed the vectorized
++  // loop boundaries. This is a workaround for the lack of notion of SIMD register in the compiler;
++  // around a call we have to save/restore all live SIMD&FP registers (only lower 64 bits of
++  // SIMD&FP registers are callee saved) so don't reorder such vector instructions.
++  //
++  // TODO: remove this when a proper support of SIMD registers is introduced to the compiler.
++  bool IsSchedulingBarrier(const HInstruction* instr) const OVERRIDE {
++    return HScheduler::IsSchedulingBarrier(instr) ||
++           instr->IsVecSetScalars() ||
++           instr->IsVecReplicateScalar();
++  }
++
+  private:
+   SchedulingLatencyVisitorARM64 arm64_latency_visitor_;
+   DISALLOW_COPY_AND_ASSIGN(HSchedulerARM64);
+diff --git a/test/706-checker-scheduler/src/Main.java b/test/706-checker-scheduler/src/Main.java
+index a68565b552..6e94875d38 100644
+--- a/test/706-checker-scheduler/src/Main.java
++++ b/test/706-checker-scheduler/src/Main.java
+@@ -364,7 +364,71 @@ public class Main {
+     return res;
+   }
+ 
++  private static void expectEquals(int expected, int result) {
++    if (expected != result) {
++      throw new Error("Expected: " + expected + ", found: " + result);
++    }
++  }
++
++  private static final int ARRAY_SIZE = 32;
++
++  // Check that VecReplicateScalar is not reordered.
++  /// CHECK-START-ARM64: void Main.testVecReplicateScalar() scheduler (before)
++  /// CHECK:     Phi                loop:<<Loop:B\d+>> outer_loop:none
++  /// CHECK:     NewArray           loop:<<Loop>>      outer_loop:none
++  /// CHECK:     VecReplicateScalar loop:<<Loop>>      outer_loop:none
++
++  /// CHECK-START-ARM64: void Main.testVecReplicateScalar() scheduler (after)
++  /// CHECK:     Phi                loop:<<Loop:B\d+>> outer_loop:none
++  /// CHECK:     NewArray           loop:<<Loop>>      outer_loop:none
++  /// CHECK:     VecReplicateScalar loop:<<Loop>>      outer_loop:none
++  private static void testVecReplicateScalar() {
++    for (int j = 0; j <= 8; j++) {
++      int[] a = new int[ARRAY_SIZE];
++      for (int i = 0; i < a.length; i++) {
++        a[i] += 1;
++      }
++      for (int i = 0; i < a.length; i++) {
++        expectEquals(1, a[i]);
++      }
++    }
++  }
++
++  // Check that VecSetScalars, VecReduce, VecExtractScalar are not reordered.
++  /// CHECK-START-ARM64: void Main.testVecSetScalars() scheduler (before)
++  /// CHECK:     Phi                  loop:<<Loop:B\d+>> outer_loop:none
++  /// CHECK:     NewArray             loop:<<Loop>>      outer_loop:none
++  /// CHECK:     VecSetScalars        loop:<<Loop>>      outer_loop:none
++  //
++  /// CHECK:     VecReduce            loop:<<Loop>>      outer_loop:none
++  /// CHECK:     VecExtractScalar     loop:<<Loop>>      outer_loop:none
++  /// CHECK:     InvokeStaticOrDirect loop:<<Loop>>      outer_loop:none
++  /// CHECK:     InvokeStaticOrDirect loop:<<Loop>>      outer_loop:none
++
++  /// CHECK-START-ARM64: void Main.testVecSetScalars() scheduler (after)
++  /// CHECK:     Phi                  loop:<<Loop:B\d+>> outer_loop:none
++  /// CHECK:     NewArray             loop:<<Loop>>      outer_loop:none
++  /// CHECK:     VecSetScalars        loop:<<Loop>>      outer_loop:none
++  //
++  /// CHECK:     VecReduce            loop:<<Loop>>      outer_loop:none
++  /// CHECK:     VecExtractScalar     loop:<<Loop>>      outer_loop:none
++  /// CHECK:     InvokeStaticOrDirect loop:<<Loop>>      outer_loop:none
++  /// CHECK:     InvokeStaticOrDirect loop:<<Loop>>      outer_loop:none
++  private static void testVecSetScalars() {
++    for (int j = 0; j <= 8; j++) {
++      int[] a = new int[ARRAY_SIZE];
++      int s = 5;
++      for (int i = 0; i < ARRAY_SIZE; i++) {
++        s+=a[i];
++      }
++      expectEquals(a[0], 0);
++      expectEquals(s, 5);
++    }
++  }
++
+   public static void main(String[] args) {
++    testVecSetScalars();
++    testVecReplicateScalar();
+     if ((arrayAccess() + intDiv(10)) != -35) {
+       System.out.println("FAIL");
+     }
+-- 
+2.14.1
+

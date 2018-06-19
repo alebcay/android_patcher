@@ -1,0 +1,144 @@
+From c77f55390eea936f871ba0e8f35dfc844f92465c Mon Sep 17 00:00:00 2001
+From: Artem Serov <artem.serov@linaro.org>
+Date: Mon, 31 Jul 2017 15:08:40 +0100
+Subject: [PATCH 3/6] ART: Fix loop header's predecessors reordering in
+ SimplifyLoops.
+
+Fix the issue when after loop header's predecessors reordering in
+SimplifyLoops phi inputs are not reordered correspondingly.
+
+Test: loop_optimization_test.cc, test-art-host, test-art-target.
+
+Change-Id: I8a251a0a953d751f9bb67da58181e47d225d90e6
+
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ compiler/optimizing/loop_optimization_test.cc | 40 +++++++++++++++++++++++++
+ compiler/optimizing/nodes.cc                  | 42 +++++++++++++++++++--------
+ compiler/optimizing/nodes.h                   |  1 +
+ 3 files changed, 71 insertions(+), 12 deletions(-)
+
+diff --git a/compiler/optimizing/loop_optimization_test.cc b/compiler/optimizing/loop_optimization_test.cc
+index 5b9350689e..b5b03d8f26 100644
+--- a/compiler/optimizing/loop_optimization_test.cc
++++ b/compiler/optimizing/loop_optimization_test.cc
+@@ -195,4 +195,44 @@ TEST_F(LoopOptimizationTest, LoopNestWithSequence) {
+   EXPECT_EQ("[[[[[[[[[[][][][][][][][][][]]]]]]]]]]", LoopStructure());
+ }
+ 
++// Check that SimplifyLoop() doesn't invalidate data flow when ordering loop headers'
++// predecessors.
++TEST_F(LoopOptimizationTest, SimplifyLoop) {
++  // Can't use AddLoop as we want special order for blocks predecessors.
++  HBasicBlock* header = new (&allocator_) HBasicBlock(graph_);
++  HBasicBlock* body = new (&allocator_) HBasicBlock(graph_);
++  graph_->AddBlock(header);
++  graph_->AddBlock(body);
++
++  // Control flow: make a loop back edge first in the list of predecessors.
++  entry_block_->RemoveSuccessor(return_block_);
++  body->AddSuccessor(header);
++  entry_block_->AddSuccessor(header);
++  header->AddSuccessor(body);
++  header->AddSuccessor(return_block_);
++  DCHECK(header->GetSuccessors()[1] == return_block_);
++
++  // Data flow.
++  header->AddInstruction(new (&allocator_) HIf(parameter_));
++  body->AddInstruction(new (&allocator_) HGoto());
++
++  HPhi* phi = new (&allocator_) HPhi(&allocator_, 0, 0, Primitive::kPrimInt);
++  HInstruction* add = new (&allocator_) HAdd(Primitive::kPrimInt, phi, parameter_);
++  header->AddPhi(phi);
++  body->AddInstruction(add);
++
++  phi->AddInput(add);
++  phi->AddInput(parameter_);
++
++  graph_->ClearLoopInformation();
++  graph_->ClearDominanceInformation();
++  graph_->BuildDominatorTree();
++
++  // Check that after optimizations in BuildDominatorTree()/SimplifyCFG() phi inputs
++  // are still mapped correctly to the block predecessors.
++  for (size_t i = 0, e = phi->InputCount(); i < e; i++) {
++    HInstruction* input = phi->InputAt(i);
++    ASSERT_TRUE(input->GetBlock()->Dominates(header->GetPredecessors()[i]));
++  }
++}
+ }  // namespace art
+diff --git a/compiler/optimizing/nodes.cc b/compiler/optimizing/nodes.cc
+index 894cbdfb9f..e381bb6505 100644
+--- a/compiler/optimizing/nodes.cc
++++ b/compiler/optimizing/nodes.cc
+@@ -358,6 +358,35 @@ void HGraph::SplitCriticalEdge(HBasicBlock* block, HBasicBlock* successor) {
+   }
+ }
+ 
++// Reorder phi inputs to match reordering of the block's predecessors.
++static void FixPhisAfterPredecessorsReodering(HBasicBlock* block, size_t first, size_t second) {
++  for (HInstructionIterator it(block->GetPhis()); !it.Done(); it.Advance()) {
++    HPhi* phi = it.Current()->AsPhi();
++    HInstruction* first_instr = phi->InputAt(first);
++    HInstruction* second_instr = phi->InputAt(second);
++    phi->ReplaceInput(first_instr, second);
++    phi->ReplaceInput(second_instr, first);
++  }
++}
++
++// Make sure that the first predecessor of a loop header is the incoming block.
++void HGraph::OrderLoopHeaderPredecessors(HBasicBlock* header) {
++  DCHECK(header->IsLoopHeader());
++  HLoopInformation* info = header->GetLoopInformation();
++  if (info->IsBackEdge(*header->GetPredecessors()[0])) {
++    HBasicBlock* to_swap = header->GetPredecessors()[0];
++    for (size_t pred = 1, e = header->GetPredecessors().size(); pred < e; ++pred) {
++      HBasicBlock* predecessor = header->GetPredecessors()[pred];
++      if (!info->IsBackEdge(*predecessor)) {
++        header->predecessors_[pred] = to_swap;
++        header->predecessors_[0] = predecessor;
++        FixPhisAfterPredecessorsReodering(header, 0, pred);
++        break;
++      }
++    }
++  }
++}
++
+ void HGraph::SimplifyLoop(HBasicBlock* header) {
+   HLoopInformation* info = header->GetLoopInformation();
+ 
+@@ -381,18 +410,7 @@ void HGraph::SimplifyLoop(HBasicBlock* header) {
+     pre_header->AddSuccessor(header);
+   }
+ 
+-  // Make sure the first predecessor of a loop header is the incoming block.
+-  if (info->IsBackEdge(*header->GetPredecessors()[0])) {
+-    HBasicBlock* to_swap = header->GetPredecessors()[0];
+-    for (size_t pred = 1, e = header->GetPredecessors().size(); pred < e; ++pred) {
+-      HBasicBlock* predecessor = header->GetPredecessors()[pred];
+-      if (!info->IsBackEdge(*predecessor)) {
+-        header->predecessors_[pred] = to_swap;
+-        header->predecessors_[0] = predecessor;
+-        break;
+-      }
+-    }
+-  }
++  OrderLoopHeaderPredecessors(header);
+ 
+   HInstruction* first_instruction = header->GetFirstInstruction();
+   if (first_instruction != nullptr && first_instruction->IsSuspendCheck()) {
+diff --git a/compiler/optimizing/nodes.h b/compiler/optimizing/nodes.h
+index ff5565c465..6aea4b1b67 100644
+--- a/compiler/optimizing/nodes.h
++++ b/compiler/optimizing/nodes.h
+@@ -418,6 +418,7 @@ class HGraph : public ArenaObject<kArenaAllocGraph> {
+   HBasicBlock* SplitEdge(HBasicBlock* block, HBasicBlock* successor);
+ 
+   void SplitCriticalEdge(HBasicBlock* block, HBasicBlock* successor);
++  void OrderLoopHeaderPredecessors(HBasicBlock* header);
+   void SimplifyLoop(HBasicBlock* header);
+ 
+   int32_t GetNextInstructionId() {
+-- 
+2.14.1
+

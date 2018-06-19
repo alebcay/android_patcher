@@ -22,6 +22,7 @@ reset	"device/motorola/sanders"
 reset	"kernel/motorola/msm8953"
 reset	"frameworks/av"
 reset	"frameworks/native"
+reset	"art"
 
 apply	"frameworks/base"
 apply	"system/core"
@@ -31,5 +32,6 @@ apply	"device/motorola/sanders"
 apply	"kernel/motorola/msm8953"
 apply	"frameworks/av"
 apply	"frameworks/native"
+apply	"art"
 
 popd >/dev/null 2>&1

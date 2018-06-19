@@ -1,0 +1,170 @@
+From b5144d6a848123b1138f2f4b0cb4b9a0a37d33e2 Mon Sep 17 00:00:00 2001
+From: Artem Serov <artem.serov@linaro.org>
+Date: Thu, 27 Jul 2017 16:04:42 +0100
+Subject: [PATCH 2/6] ART: Fix SimplifyInduction for an instruction with
+ HEnvironment.
+
+After an instruction is removed during RemoveFromCycle its
+environment isn't properly cleaned: it still has input instructions
+present and registered (those instructions still hold records for
+that).
+
+Test: test-art-target, test-art-host.
+Change-Id: Iea315bdf735d75fe477f43671f05b40dfecc63a8
+
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ compiler/optimizing/loop_optimization.cc        | 20 ++++++++++++++++
+ compiler/optimizing/nodes.cc                    | 32 ++++++++++++++++++++++++-
+ compiler/optimizing/nodes.h                     |  4 ++++
+ test/623-checker-loop-regressions/src/Main.java | 17 +++++++++++++
+ 4 files changed, 72 insertions(+), 1 deletion(-)
+
+diff --git a/compiler/optimizing/loop_optimization.cc b/compiler/optimizing/loop_optimization.cc
+index 422e58debb..02a1cb6539 100644
+--- a/compiler/optimizing/loop_optimization.cc
++++ b/compiler/optimizing/loop_optimization.cc
+@@ -40,6 +40,8 @@ static void RemoveFromCycle(HInstruction* instruction) {
+   instruction->RemoveAsUserOfAllInputs();
+   instruction->RemoveEnvironmentUsers();
+   instruction->GetBlock()->RemoveInstructionOrPhi(instruction, /*ensure_safety=*/ false);
++  RemoveEnvironmentUses(instruction);
++  ResetEnvironmentInputRecords(instruction);
+ }
+ 
+ // Detect a goto block and sets succ to the single successor.
+@@ -267,6 +269,21 @@ static HInstruction* Insert(HBasicBlock* block, HInstruction* instruction) {
+   return instruction;
+ }
+ 
++// Check that instructions from the induction sets are fully removed: have no uses
++// and no other instructions use them.
++static bool CheckInductionSetFullyRemoved(ArenaSet<HInstruction*>* iset) {
++  for (HInstruction* instr : *iset) {
++    if (instr->GetBlock() != nullptr ||
++        !instr->GetUses().empty() ||
++        !instr->GetEnvUses().empty() ||
++        HasEnvironmentUsedByOthers(instr)) {
++      return false;
++    }
++  }
++
++  return true;
++}
++
+ //
+ // Class methods.
+ //
+@@ -448,6 +465,9 @@ void HLoopOptimization::SimplifyInduction(LoopNode* node) {
+         for (HInstruction* i : *iset_) {
+           RemoveFromCycle(i);
+         }
++
++        // Check that there are no records of the deleted instructions.
++        DCHECK(CheckInductionSetFullyRemoved(iset_));
+         simplified_ = true;
+       }
+     }
+diff --git a/compiler/optimizing/nodes.cc b/compiler/optimizing/nodes.cc
+index 4ca833707b..894cbdfb9f 100644
+--- a/compiler/optimizing/nodes.cc
++++ b/compiler/optimizing/nodes.cc
+@@ -90,7 +90,8 @@ void HGraph::FindBackEdges(ArenaBitVector* visited) {
+   }
+ }
+ 
+-static void RemoveEnvironmentUses(HInstruction* instruction) {
++// Remove the environment use records of the instruction for users.
++void RemoveEnvironmentUses(HInstruction* instruction) {
+   for (HEnvironment* environment = instruction->GetEnvironment();
+        environment != nullptr;
+        environment = environment->GetParent()) {
+@@ -102,6 +103,35 @@ static void RemoveEnvironmentUses(HInstruction* instruction) {
+   }
+ }
+ 
++// Return whether the instruction has an environment and it's used by others.
++bool HasEnvironmentUsedByOthers(HInstruction* instruction) {
++  for (HEnvironment* environment = instruction->GetEnvironment();
++       environment != nullptr;
++       environment = environment->GetParent()) {
++    for (size_t i = 0, e = environment->Size(); i < e; ++i) {
++      HInstruction* user = environment->GetInstructionAt(i);
++      if (user != nullptr) {
++        return true;
++      }
++    }
++  }
++  return false;
++}
++
++// Reset environment records of the instruction itself.
++void ResetEnvironmentInputRecords(HInstruction* instruction) {
++  for (HEnvironment* environment = instruction->GetEnvironment();
++       environment != nullptr;
++       environment = environment->GetParent()) {
++    for (size_t i = 0, e = environment->Size(); i < e; ++i) {
++      DCHECK(environment->GetHolder() == instruction);
++      if (environment->GetInstructionAt(i) != nullptr) {
++        environment->SetRawEnvAt(i, nullptr);
++      }
++    }
++  }
++}
++
+ static void RemoveAsUser(HInstruction* instruction) {
+   instruction->RemoveAsUserOfAllInputs();
+   RemoveEnvironmentUses(instruction);
+diff --git a/compiler/optimizing/nodes.h b/compiler/optimizing/nodes.h
+index 5e072cdb67..ff5565c465 100644
+--- a/compiler/optimizing/nodes.h
++++ b/compiler/optimizing/nodes.h
+@@ -7059,6 +7059,10 @@ inline HInstruction* HuntForDeclaration(HInstruction* instruction) {
+   return instruction;
+ }
+ 
++void RemoveEnvironmentUses(HInstruction* instruction);
++bool HasEnvironmentUsedByOthers(HInstruction* instruction);
++void ResetEnvironmentInputRecords(HInstruction* instruction);
++
+ }  // namespace art
+ 
+ #endif  // ART_COMPILER_OPTIMIZING_NODES_H_
+diff --git a/test/623-checker-loop-regressions/src/Main.java b/test/623-checker-loop-regressions/src/Main.java
+index aca997e982..fc7bcb2f8f 100644
+--- a/test/623-checker-loop-regressions/src/Main.java
++++ b/test/623-checker-loop-regressions/src/Main.java
+@@ -426,6 +426,21 @@ public class Main {
+     }
+   }
+ 
++  // Environment of an instruction, removed during SimplifyInduction, should be adjusted.
++  //
++  /// CHECK-START: void Main.inductionMax(int[]) loop_optimization (before)
++  /// CHECK-DAG: Phi loop:<<Loop:B\d+>> outer_loop:none
++  /// CHECK-DAG: Phi loop:<<Loop>>      outer_loop:none
++  //
++  /// CHECK-START: void Main.inductionMax(int[]) loop_optimization (after)
++  /// CHECK-NOT: Phi
++  private static void inductionMax(int[] a) {
++   int s = 0;
++    for (int i = 0; i < 10; i++) {
++      s = Math.max(s, 5);
++    }
++  }
++
+   public static void main(String[] args) {
+     expectEquals(10, earlyExitFirst(-1));
+     for (int i = 0; i <= 10; i++) {
+@@ -539,6 +554,8 @@ public class Main {
+       expectEquals((byte)(i + 1), b1[i]);
+     }
+ 
++    inductionMax(yy);
++
+     System.out.println("passed");
+   }
+ 
+-- 
+2.14.1
+

@@ -1,0 +1,71 @@
+From f3ae915c3ea7dd3a072569f9eef1ce340a12426c Mon Sep 17 00:00:00 2001
+From: Alessio Balsini <alessio.balsini@arm.com>
+Date: Fri, 2 Feb 2018 12:49:50 +0000
+Subject: [PATCH 8/9] DL policy extension for SchedulingPolicyService
+
+Enabling of SCHED_DEADLINE policy through the SchedulingPolicyService by
+exporting the requestPriorityDL.
+This function takes as input the runtime, deadline and period parameters
+that will be used to schedule the process with the given tid, instead of
+just the priority parameter used for FIFO/RR scheduling.
+
+This function performs an initial parameters checking so that
+
+1024 <= runtime <= deadline <= period
+
+Here, 1024 is a magic number defined by the kernel, while the other
+constraints are necessary for the schedulability of the task.
+
+Test: manual - experimental extension used for prototyping
+Change-Id: I71d40c411cdddd1ed0e6b1b8d94049f3306e7ca7
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+---
+ services/schedulerservice/SchedulingPolicyService.cpp  | 18 ++++++++++++++++++
+ .../include/schedulerservice/SchedulingPolicyService.h |  2 ++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/services/schedulerservice/SchedulingPolicyService.cpp b/services/schedulerservice/SchedulingPolicyService.cpp
+index 1f6ed5791..eaa32844f 100644
+--- a/services/schedulerservice/SchedulingPolicyService.cpp
++++ b/services/schedulerservice/SchedulingPolicyService.cpp
+@@ -48,6 +48,24 @@ Return<bool> SchedulingPolicyService::requestPriority(int32_t pid, int32_t tid,
+     return value == 0 /* success */;
+ }
+ 
++Return<bool> SchedulingPolicyService::requestPriorityDL(int32_t pid, int32_t tid,
++        uint64_t runtime, uint64_t deadline, uint64_t period) {
++    if (!isAllowed())
++        return false;
++
++    /* 1024 <= runtime <= deadline <= period */
++    if (1024 > runtime ||
++        runtime > deadline ||
++        deadline > period) {
++        return false;
++    }
++
++    int value = android::requestPriorityDL(pid, tid,
++        runtime, deadline, period,
++        false /* isForApp */);
++    return value == 0 /* success */;
++}
++
+ Return<int32_t> SchedulingPolicyService::getMaxAllowedPriority() {
+     if (!isAllowed()) {
+         return 0;
+diff --git a/services/schedulerservice/include/schedulerservice/SchedulingPolicyService.h b/services/schedulerservice/include/schedulerservice/SchedulingPolicyService.h
+index 7d1c478ba..56fb6e0f1 100644
+--- a/services/schedulerservice/include/schedulerservice/SchedulingPolicyService.h
++++ b/services/schedulerservice/include/schedulerservice/SchedulingPolicyService.h
+@@ -38,6 +38,8 @@ using ::android::sp;
+ 
+ struct SchedulingPolicyService : public ISchedulingPolicyService {
+     Return<bool> requestPriority(int32_t pid, int32_t tid, int32_t priority) override;
++    Return<bool> requestPriorityDL(int32_t pid, int32_t tid,
++                                   uint64_t runtime, uint64_t deadline, uint64_t period);
+     Return<int32_t> getMaxAllowedPriority() override;
+ private:
+     bool isAllowed();
+-- 
+2.14.1
+

@@ -1,0 +1,36 @@
+From ab06ce7a9ef8f65abc654ac64637056d450cd70e Mon Sep 17 00:00:00 2001
+From: George Burgess IV <gbiv@google.com>
+Date: Tue, 29 Aug 2017 17:57:25 -0700
+Subject: [PATCH 9/9] surfaceflinger: fix static analyzer complaints
+
+Due to https://bugs.llvm.org/show_bug.cgi?id=34365, the static analyzer
+complains about use of copied `sp`s. In this case, the copy is entirely
+unnecessary, since we're just going to destroy the copied-from sp
+anyway.
+
+Speed things up a bit + appease the analyzer by moving instead.
+
+Bug: 27101951
+Test: mma. Static analyzer no longer complains.
+Change-Id: Idf45abcc5c9b3694ef710e330e88a7c2fd766929
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+---
+ services/surfaceflinger/SurfaceFlinger.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index 63f94c6df..e917f4899 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -2283,7 +2283,7 @@ void SurfaceFlinger::handleTransactionLocked(uint32_t transactionFlags)
+                     sp<const DisplayDevice> hw(mDisplays[dpy]);
+                     if (layer->belongsToDisplay(hw->getLayerStack(), hw->isPrimary())) {
+                         if (disp == NULL) {
+-                            disp = hw;
++                            disp = std::move(hw);
+                         } else {
+                             disp = NULL;
+                             break;
+-- 
+2.14.1
+

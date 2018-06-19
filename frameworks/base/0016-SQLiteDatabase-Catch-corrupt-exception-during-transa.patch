@@ -1,0 +1,51 @@
+From d7caf44be68c86bbb20021f9505fc1528c4bd0c9 Mon Sep 17 00:00:00 2001
+From: "muzbit.kim" <muzbit.kim@lge.com>
+Date: Thu, 7 Nov 2013 14:18:23 +0900
+Subject: [PATCH 16/19] SQLiteDatabase: Catch corrupt exception during
+ transaction
+
+If corruption occurs in a transaction running, DB file should be deleted.
+
+Change-Id: I5b3a122ebe51770966c334021ab6717d5ff081c3
+Signed-off-by: muzbit.kim <muzbit.kim@lge.com>
+---
+ core/java/android/database/sqlite/SQLiteDatabase.java | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/core/java/android/database/sqlite/SQLiteDatabase.java b/core/java/android/database/sqlite/SQLiteDatabase.java
+index df0e262b712..5046f29279f 100644
+--- a/core/java/android/database/sqlite/SQLiteDatabase.java
++++ b/core/java/android/database/sqlite/SQLiteDatabase.java
+@@ -536,6 +536,9 @@ public final class SQLiteDatabase extends SQLiteClosable {
+                             SQLiteSession.TRANSACTION_MODE_IMMEDIATE,
+                     transactionListener,
+                     getThreadDefaultConnectionFlags(false /*readOnly*/), null);
++        } catch (SQLiteDatabaseCorruptException ex) {
++            onCorruption();
++            throw ex;
+         } finally {
+             releaseReference();
+         }
+@@ -549,6 +552,9 @@ public final class SQLiteDatabase extends SQLiteClosable {
+         acquireReference();
+         try {
+             getThreadSession().endTransaction(null);
++        } catch (SQLiteDatabaseCorruptException ex) {
++            onCorruption();
++            throw ex;
+         } finally {
+             releaseReference();
+         }
+@@ -666,6 +672,9 @@ public final class SQLiteDatabase extends SQLiteClosable {
+         acquireReference();
+         try {
+             return getThreadSession().yieldTransaction(sleepAfterYieldDelay, throwIfUnsafe, null);
++        } catch (SQLiteDatabaseCorruptException ex) {
++            onCorruption();
++            throw ex;
+         } finally {
+             releaseReference();
+         }
+-- 
+2.11.0
+

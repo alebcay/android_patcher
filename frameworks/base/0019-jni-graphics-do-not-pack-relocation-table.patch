@@ -1,0 +1,33 @@
+From fe7e22bf4bf51d5c794bf509ca9b92335ad75287 Mon Sep 17 00:00:00 2001
+From: Chih-Hung Hsieh <chh@google.com>
+Date: Tue, 22 May 2018 21:37:08 -0700
+Subject: [PATCH 19/19] jni: graphics: do not pack relocation table
+
+Global flag --pack-dyn-relocs=android is used with clang lld.
+For b/24465209, we need to override that with pack_relocations:false.
+
+Bug: 24465209
+Bug: 80093890
+Test: build with USE_CLANG_LLD=true and run dlext.compat_elf_hash_and_relocation_tables
+
+Change-Id: I9364feb4070d4f75705d8651d535c792fe6ad6f7
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ native/graphics/jni/Android.mk | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/native/graphics/jni/Android.mk b/native/graphics/jni/Android.mk
+index ec4b35aac9c..3c45b0c151f 100644
+--- a/native/graphics/jni/Android.mk
++++ b/native/graphics/jni/Android.mk
+@@ -36,5 +36,7 @@ LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
+ # TODO: This is to work around b/24465209. Remove after root cause is fixed
+ LOCAL_LDFLAGS_arm := -Wl,--hash-style=both
+ 
++LOCAL_PACK_MODULE_RELOCATIONS := false
++
+ include $(BUILD_SHARED_LIBRARY)
+ 
+-- 
+2.14.1
+

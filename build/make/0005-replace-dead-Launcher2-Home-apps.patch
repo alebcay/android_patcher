@@ -1,0 +1,39 @@
+From bd0057e5d31a2024bb569cfc66821d24f2edcc83 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Sat, 1 Jul 2017 14:40:36 -0400
+Subject: [PATCH 5/5] replace dead Launcher2 / Home apps
+
+Change-Id: Idf1fcfc9b4b6ac415daa1a925fdfb79dc8f18d78
+---
+ target/product/core.mk      | 2 +-
+ target/product/core_base.mk | 1 -
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/target/product/core.mk b/target/product/core.mk
+index fa215833b..fcf7040e1 100644
+--- a/target/product/core.mk
++++ b/target/product/core.mk
+@@ -41,7 +41,7 @@ PRODUCT_PACKAGES += \
+     InputDevices \
+     KeyChain \
+     Keyguard \
+-    Launcher2 \
++    Launcher3 \
+     ManagedProvisioning \
+     MtpDocumentsProvider \
+     PicoTts \
+diff --git a/target/product/core_base.mk b/target/product/core_base.mk
+index ba2aacaa2..ac0b2058a 100644
+--- a/target/product/core_base.mk
++++ b/target/product/core_base.mk
+@@ -19,7 +19,6 @@
+ PRODUCT_PACKAGES += \
+     ContactsProvider \
+     DefaultContainerService \
+-    Home \
+     TelephonyProvider \
+     UserDictionaryProvider \
+     atrace \
+-- 
+2.11.0
+

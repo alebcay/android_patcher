@@ -1,0 +1,28 @@
+From ff4f7bab9f689653afeb63b917b9ed5ab8b283be Mon Sep 17 00:00:00 2001
+From: Caleb Xu <calebcenter@live.com>
+Date: Thu, 21 Jun 2018 22:38:32 +0000
+Subject: [PATCH 6/6] Include F-Droid app and privileged extension
+
+---
+ device.mk | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/device.mk b/device.mk
+index 4e68b15..77ab1ef 100644
+--- a/device.mk
++++ b/device.mk
+@@ -207,6 +207,11 @@ PRODUCT_PACKAGES += \
+     FMRadio \
+     libfmjni
+ 
++# F-Droid
++PRODUCT_PACKAGES += \
++    F-Droid \
++    F-DroidPrivilegedExtension
++
+ # Gatekeeper HAL
+ PRODUCT_PACKAGES += \
+     android.hardware.gatekeeper@1.0-impl \
+-- 
+2.11.0
+

@@ -1,0 +1,105 @@
+From fee9237d804e3f3830ff37c6a9915b9494e40c89 Mon Sep 17 00:00:00 2001
+From: Chalard Jean <jchalard@google.com>
+Date: Fri, 9 Mar 2018 22:28:51 +0900
+Subject: [PATCH 20/22] Add the ability to refresh to the captive portal app.
+
+Bug: 69840796
+Test: manual
+      created a small app that brings up the captive portal app,
+      checked that pulling down does show the refresh spinner,
+      refresh the page, and hide the spinner when refreshed.
+      Checked that it works multiple times in a row.
+
+Change-Id: Ieefdaffa9325b0c5f1b02ab6052c29a381f3a4d4
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ packages/CaptivePortalLogin/Android.mk                  |  1 +
+ .../res/layout/activity_captive_portal_login.xml        | 17 +++++++++++------
+ .../captiveportallogin/CaptivePortalLoginActivity.java  | 10 ++++++++++
+ 3 files changed, 22 insertions(+), 6 deletions(-)
+
+diff --git a/packages/CaptivePortalLogin/Android.mk b/packages/CaptivePortalLogin/Android.mk
+index 576debc6478..8b3c4e1f6fd 100644
+--- a/packages/CaptivePortalLogin/Android.mk
++++ b/packages/CaptivePortalLogin/Android.mk
+@@ -2,6 +2,7 @@ LOCAL_PATH:= $(call my-dir)
+ include $(CLEAR_VARS)
+ 
+ LOCAL_MODULE_TAGS := optional
++LOCAL_STATIC_JAVA_LIBRARIES := android-support-v4
+ 
+ LOCAL_SRC_FILES := $(call all-java-files-under, src)
+ 
+diff --git a/packages/CaptivePortalLogin/res/layout/activity_captive_portal_login.xml b/packages/CaptivePortalLogin/res/layout/activity_captive_portal_login.xml
+index 232459338f4..c292323b60c 100644
+--- a/packages/CaptivePortalLogin/res/layout/activity_captive_portal_login.xml
++++ b/packages/CaptivePortalLogin/res/layout/activity_captive_portal_login.xml
+@@ -27,12 +27,17 @@
+             android:layout_height="wrap_content" />
+       </FrameLayout>
+ 
+-      <WebView
+-          android:id="@+id/webview"
+-          android:layout_width="match_parent"
+-          android:layout_height="match_parent"
+-          android:layout_alignParentBottom="false"
+-          android:layout_alignParentRight="false" />
++      <android.support.v4.widget.SwipeRefreshLayout
++            android:id="@+id/swipe_refresh"
++            android:layout_width="match_parent"
++            android:layout_height="match_parent">
++        <WebView
++              android:id="@+id/webview"
++              android:layout_width="match_parent"
++              android:layout_height="match_parent"
++              android:layout_alignParentBottom="false"
++              android:layout_alignParentRight="false" />
++      </android.support.v4.widget.SwipeRefreshLayout>
+ 
+     </LinearLayout>
+ </FrameLayout>
+diff --git a/packages/CaptivePortalLogin/src/com/android/captiveportallogin/CaptivePortalLoginActivity.java b/packages/CaptivePortalLogin/src/com/android/captiveportallogin/CaptivePortalLoginActivity.java
+index be87ed2ed88..9304c79103e 100644
+--- a/packages/CaptivePortalLogin/src/com/android/captiveportallogin/CaptivePortalLoginActivity.java
++++ b/packages/CaptivePortalLogin/src/com/android/captiveportallogin/CaptivePortalLoginActivity.java
+@@ -34,6 +34,7 @@ import android.net.http.SslError;
+ import android.os.Build;
+ import android.os.Bundle;
+ import android.provider.Settings;
++import android.support.v4.widget.SwipeRefreshLayout;
+ import android.util.ArrayMap;
+ import android.util.Log;
+ import android.util.TypedValue;
+@@ -86,6 +87,7 @@ public class CaptivePortalLoginActivity extends Activity {
+     private ConnectivityManager mCm;
+     private boolean mLaunchBrowser = false;
+     private MyWebViewClient mWebViewClient;
++    private SwipeRefreshLayout mSwipeRefreshLayout;
+     // Ensures that done() happens once exactly, handling concurrent callers with atomic operations.
+     private final AtomicBoolean isDone = new AtomicBoolean(false);
+ 
+@@ -157,6 +159,13 @@ public class CaptivePortalLoginActivity extends Activity {
+         // Start initial page load so WebView finishes loading proxy settings.
+         // Actual load of mUrl is initiated by MyWebViewClient.
+         webview.loadData("", "text/html", null);
++
++        mSwipeRefreshLayout = findViewById(R.id.swipe_refresh);
++        mSwipeRefreshLayout.setOnRefreshListener(() -> {
++                webview.reload();
++                mSwipeRefreshLayout.setRefreshing(true);
++            });
++
+     }
+ 
+     // Find WebView's proxy BroadcastReceiver and prompt it to read proxy system properties.
+@@ -391,6 +400,7 @@ public class CaptivePortalLoginActivity extends Activity {
+         public void onPageFinished(WebView view, String url) {
+             mPagesLoaded++;
+             getProgressBar().setVisibility(View.INVISIBLE);
++            mSwipeRefreshLayout.setRefreshing(false);
+             if (mPagesLoaded == 1) {
+                 // Now that WebView has loaded at least one page we know it has read in the proxy
+                 // settings.  Now prompt the WebView read the Network-specific proxy settings.
+-- 
+2.11.0
+

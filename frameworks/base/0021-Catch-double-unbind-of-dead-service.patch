@@ -1,0 +1,40 @@
+From 93e366f5a4e9338fb1c1d8de6fc8772db3da4776 Mon Sep 17 00:00:00 2001
+From: Tobias Lindskog <tobias.lindskog@sony.com>
+Date: Mon, 12 Mar 2018 15:44:47 +0100
+Subject: [PATCH 21/22] Catch double unbind of dead service
+
+If a service receives onBindingDied after it has successfully connected
+once, unbindService would be called once from the onBindingDied and then
+again from registerServiceLocked when the service was rebound.  This
+second attempt would typically crash.
+
+The first unbindService call has a try/catch, add one around the second
+call as well.
+
+Test: Manual.  Boots and reboots without problems.
+Change-Id: Ie9eabbcb6ee89c05abc565427465cfd6906f3fa3
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ .../core/java/com/android/server/notification/ManagedServices.java  | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/services/core/java/com/android/server/notification/ManagedServices.java b/services/core/java/com/android/server/notification/ManagedServices.java
+index 625764cea55..9f6a0d300b0 100644
+--- a/services/core/java/com/android/server/notification/ManagedServices.java
++++ b/services/core/java/com/android/server/notification/ManagedServices.java
+@@ -844,7 +844,11 @@ abstract public class ManagedServices {
+                 Slog.v(TAG, "    disconnecting old " + getCaption() + ": " + info.service);
+                 removeServiceLocked(i);
+                 if (info.connection != null) {
+-                    mContext.unbindService(info.connection);
++                    try {
++                        mContext.unbindService(info.connection);
++                    } catch (IllegalArgumentException e) {
++                        Slog.e(TAG, "failed to unbind " + name, e);
++                    }
+                 }
+             }
+         }
+-- 
+2.11.0
+

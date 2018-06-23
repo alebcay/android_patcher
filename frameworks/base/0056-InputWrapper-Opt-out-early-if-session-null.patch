@@ -1,0 +1,28 @@
+From 65e82f5456baf8bb20afac5880df481d7a642a27 Mon Sep 17 00:00:00 2001
+From: Lars Greiss <kufikugel@googlemail.com>
+Date: Fri, 18 Jul 2014 19:13:30 +0200
+Subject: [PATCH 56/66] InputWrapper: Opt out early if session == null
+
+Change-Id: If111195ba6425ad6b8663601566f9f260738ec77
+---
+ core/java/android/inputmethodservice/IInputMethodWrapper.java | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/core/java/android/inputmethodservice/IInputMethodWrapper.java b/core/java/android/inputmethodservice/IInputMethodWrapper.java
+index 47aff668f36..da82e61927f 100644
+--- a/core/java/android/inputmethodservice/IInputMethodWrapper.java
++++ b/core/java/android/inputmethodservice/IInputMethodWrapper.java
+@@ -274,6 +274,10 @@ class IInputMethodWrapper extends IInputMethod.Stub
+ 
+     @Override
+     public void setSessionEnabled(IInputMethodSession session, boolean enabled) {
++        if (session == null) {
++            Log.w(TAG, "Incoming session is null");
++            return;
++        }
+         try {
+             InputMethodSession ls = ((IInputMethodSessionWrapper)
+                     session).getInternalInputMethodSession();
+-- 
+2.14.1
+

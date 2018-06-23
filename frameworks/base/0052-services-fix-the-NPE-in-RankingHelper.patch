@@ -1,0 +1,101 @@
+From 203a18637032c9d661ba36a21d43e125f2088f4b Mon Sep 17 00:00:00 2001
+From: chengang <chengang@xiaomi.com>
+Date: Mon, 22 Jan 2018 11:09:36 +0800
+Subject: [PATCH 52/66] services: fix the NPE in RankingHelper
+
+System crash will happend due to NPE at RankingHelper.writeXml.
+Record.channels is not-thread-safe,when multiple clients call
+NotificationManager#createNotificationChannel and deleteNotificationChannel
+at a same time.As a result ,this ArraryMap Object gets broken.
+Solution: Use ConcurrentHashMap instead of ArrayMap.
+
+Test: manual and monkey test
+Bug: 72343241
+Change-Id: I8d7cb16b421628a8c666d44fd3dcfebae538aef2
+Signed-off-by: chengang <chengang@xiaomi.com>
+---
+ .../android/server/notification/RankingHelper.java | 26 +++++++---------------
+ 1 file changed, 8 insertions(+), 18 deletions(-)
+
+diff --git a/services/core/java/com/android/server/notification/RankingHelper.java b/services/core/java/com/android/server/notification/RankingHelper.java
+index b8e2092fd2f..3370f1d2c18 100644
+--- a/services/core/java/com/android/server/notification/RankingHelper.java
++++ b/services/core/java/com/android/server/notification/RankingHelper.java
+@@ -688,9 +688,7 @@ public class RankingHelper implements RankingConfig {
+         if (r == null) {
+             return;
+         }
+-        int N = r.channels.size() - 1;
+-        for (int i = N; i >= 0; i--) {
+-            String key = r.channels.keyAt(i);
++        for (String key : r.channels.keySet()) {
+             if (!NotificationChannel.DEFAULT_CHANNEL_ID.equals(key)) {
+                 r.channels.remove(key);
+             }
+@@ -714,9 +712,7 @@ public class RankingHelper implements RankingConfig {
+             return ParceledListSlice.emptyList();
+         }
+         NotificationChannelGroup nonGrouped = new NotificationChannelGroup(null, null);
+-        int N = r.channels.size();
+-        for (int i = 0; i < N; i++) {
+-            final NotificationChannel nc = r.channels.valueAt(i);
++        for (NotificationChannel nc : r.channels.values()) {
+             if (includeDeleted || !nc.isDeleted()) {
+                 if (nc.getGroup() != null) {
+                     if (r.groups.get(nc.getGroup()) != null) {
+@@ -749,9 +745,7 @@ public class RankingHelper implements RankingConfig {
+ 
+         r.groups.remove(groupId);
+ 
+-        int N = r.channels.size();
+-        for (int i = 0; i < N; i++) {
+-            final NotificationChannel nc = r.channels.valueAt(i);
++        for (NotificationChannel nc : r.channels.values()) {
+             if (groupId.equals(nc.getGroup())) {
+                 nc.setDeleted(true);
+                 deletedChannels.add(nc);
+@@ -779,9 +773,7 @@ public class RankingHelper implements RankingConfig {
+         if (r == null) {
+             return ParceledListSlice.emptyList();
+         }
+-        int N = r.channels.size();
+-        for (int i = 0; i < N; i++) {
+-            final NotificationChannel nc = r.channels.valueAt(i);
++        for(NotificationChannel nc : r.channels.values()) {
+             if (includeDeleted || !nc.isDeleted()) {
+                 channels.add(nc);
+             }
+@@ -811,9 +803,7 @@ public class RankingHelper implements RankingConfig {
+         if (r == null) {
+             return deletedCount;
+         }
+-        int N = r.channels.size();
+-        for (int i = 0; i < N; i++) {
+-            final NotificationChannel nc = r.channels.valueAt(i);
++        for (NotificationChannel nc : r.channels.values()) {
+             if (nc.isDeleted()) {
+                 deletedCount++;
+             }
+@@ -1061,8 +1051,8 @@ public class RankingHelper implements RankingConfig {
+             for (int i = 0; i < mRecords.size(); i++) {
+                 final Record r = mRecords.valueAt(i);
+                 int channelCount = 0;
+-                for (int j = 0; j < r.channels.size(); j++) {
+-                    if (!r.channels.valueAt(j).isDeleted()) {
++                for (NotificationChannel nc : r.channels.values()) {
++                    if (!nc.isDeleted()) {
+                         channelCount++;
+                     }
+                 }
+@@ -1214,7 +1204,7 @@ public class RankingHelper implements RankingConfig {
+         int visibility = DEFAULT_VISIBILITY;
+         boolean showBadge = DEFAULT_SHOW_BADGE;
+ 
+-        ArrayMap<String, NotificationChannel> channels = new ArrayMap<>();
++        Map<String, NotificationChannel> channels = new ConcurrentHashMap<>();
+         Map<String, NotificationChannelGroup> groups = new ConcurrentHashMap<>();
+    }
+ }
+-- 
+2.14.1
+

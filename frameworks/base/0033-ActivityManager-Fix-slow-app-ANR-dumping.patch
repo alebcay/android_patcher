@@ -1,0 +1,76 @@
+From 891baecdd8df70d94d1897c109c1ee11c1079e8a Mon Sep 17 00:00:00 2001
+From: Andreas Gampe <agampe@google.com>
+Date: Mon, 7 May 2018 09:52:58 -0700
+Subject: [PATCH 33/47] ActivityManager: Fix slow-app ANR dumping
+
+Update for current tombstoned-managed dumping.
+
+Bug: 77288304
+Test: m
+Change-Id: If3d0671ad0fc173f393c1c6e1c537323b8df2b0f
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ .../android/server/am/ActivityManagerService.java  | 22 ++++++----------------
+ 1 file changed, 6 insertions(+), 16 deletions(-)
+
+diff --git a/services/core/java/com/android/server/am/ActivityManagerService.java b/services/core/java/com/android/server/am/ActivityManagerService.java
+index 040bb9845d5..7d2bf8f726f 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerService.java
++++ b/services/core/java/com/android/server/am/ActivityManagerService.java
+@@ -5966,22 +5966,15 @@ public class ActivityManagerService extends IActivityManager.Stub
+         if (true || Build.IS_USER) {
+             return;
+         }
+-        String tracesPath = SystemProperties.get("dalvik.vm.stack-trace-file", null);
+-        if (tracesPath == null || tracesPath.length() == 0) {
+-            return;
+-        }
+ 
+         StrictMode.ThreadPolicy oldPolicy = StrictMode.allowThreadDiskReads();
+         StrictMode.allowThreadDiskWrites();
+         try {
+-            final File tracesFile = new File(tracesPath);
+-            final File tracesDir = tracesFile.getParentFile();
+-            final File tracesTmp = new File(tracesDir, "__tmp__");
++            File tracesDir = new File("/data/anr");
++            File tracesFile = null;
+             try {
+-                if (tracesFile.exists()) {
+-                    tracesTmp.delete();
+-                    tracesFile.renameTo(tracesTmp);
+-                }
++                tracesFile = File.createTempFile("app_slow", null, tracesDir);
++
+                 StringBuilder sb = new StringBuilder();
+                 Time tobj = new Time();
+                 tobj.set(System.currentTimeMillis());
+@@ -5998,14 +5991,14 @@ public class ActivityManagerService extends IActivityManager.Stub
+                 fos.close();
+                 FileUtils.setPermissions(tracesFile.getPath(), 0666, -1, -1); // -rw-rw-rw-
+             } catch (IOException e) {
+-                Slog.w(TAG, "Unable to prepare slow app traces file: " + tracesPath, e);
++                Slog.w(TAG, "Unable to prepare slow app traces file: " + tracesFile, e);
+                 return;
+             }
+ 
+             if (app != null) {
+                 ArrayList<Integer> firstPids = new ArrayList<Integer>();
+                 firstPids.add(app.pid);
+-                dumpStackTraces(tracesPath, firstPids, null, null, true /* useTombstoned */);
++                dumpStackTraces(tracesFile.getAbsolutePath(), firstPids, null, null, true /* useTombstoned */);
+             }
+ 
+             File lastTracesFile = null;
+@@ -6023,9 +6016,6 @@ public class ActivityManagerService extends IActivityManager.Stub
+                 lastTracesFile = curTracesFile;
+             }
+             tracesFile.renameTo(curTracesFile);
+-            if (tracesTmp.exists()) {
+-                tracesTmp.renameTo(tracesFile);
+-            }
+         } finally {
+             StrictMode.setThreadPolicy(oldPolicy);
+         }
+-- 
+2.11.0
+

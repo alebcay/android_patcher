@@ -1,0 +1,45 @@
+From d61c8dc46f25e3434f613c2febe0f7102602929e Mon Sep 17 00:00:00 2001
+From: Ruthwar Ambeer <rambeer@codeaurora.org>
+Date: Fri, 12 Jan 2018 23:04:25 +0530
+Subject: [PATCH 51/66] Update network score from NetworkAgent
+
+When Network score is updated through network agent from
+different process, It is throwing exception as the Integer
+Object is not parcelable across processes.
+
+Change-Id: Id791f94dca64608cddc01724c74893936c2093b4
+---
+ core/java/android/net/NetworkAgent.java                        | 2 +-
+ services/core/java/com/android/server/ConnectivityService.java | 3 +--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/core/java/android/net/NetworkAgent.java b/core/java/android/net/NetworkAgent.java
+index 2dacf8f460b..67321093873 100644
+--- a/core/java/android/net/NetworkAgent.java
++++ b/core/java/android/net/NetworkAgent.java
+@@ -386,7 +386,7 @@ public abstract class NetworkAgent extends Handler {
+         if (score < 0) {
+             throw new IllegalArgumentException("Score must be >= 0");
+         }
+-        queueOrSendMessage(EVENT_NETWORK_SCORE_CHANGED, new Integer(score));
++        queueOrSendMessage(EVENT_NETWORK_SCORE_CHANGED, score, 0);
+     }
+ 
+     /**
+diff --git a/services/core/java/com/android/server/ConnectivityService.java b/services/core/java/com/android/server/ConnectivityService.java
+index b1a436c241a..78efa2f6f4c 100644
+--- a/services/core/java/com/android/server/ConnectivityService.java
++++ b/services/core/java/com/android/server/ConnectivityService.java
+@@ -2073,8 +2073,7 @@ public class ConnectivityService extends IConnectivityManager.Stub
+                     break;
+                 }
+                 case NetworkAgent.EVENT_NETWORK_SCORE_CHANGED: {
+-                    Integer score = (Integer) msg.obj;
+-                    if (score != null) updateNetworkScore(nai, score.intValue());
++                    updateNetworkScore(nai, msg.arg1);
+                     break;
+                 }
+                 case NetworkAgent.EVENT_UID_RANGES_ADDED: {
+-- 
+2.14.1
+

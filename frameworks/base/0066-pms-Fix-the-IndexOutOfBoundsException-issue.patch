@@ -1,0 +1,40 @@
+From e1adbc154411341a0debe421b4046d5ae899e5cf Mon Sep 17 00:00:00 2001
+From: tianxiaodong <tianxiaodong@xiaomi.com>
+Date: Mon, 15 May 2017 11:34:06 +0800
+Subject: [PATCH 66/66] pms: Fix the IndexOutOfBoundsException issue
+
+Check if the size is greater than 0
+before mPendingInstalls.remove(0).
+
+Test: make services
+
+https://issuetracker.google.com/issues/38298491
+
+Change-Id: I3a2063977e6e64e140de7a9eea7c199e6632c2cb
+Signed-off-by: tianxiaodong <tianxiaodong@xiaomi.com>
+---
+ .../core/java/com/android/server/pm/PackageManagerService.java    | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/services/core/java/com/android/server/pm/PackageManagerService.java b/services/core/java/com/android/server/pm/PackageManagerService.java
+index 7797544cadd..5c5246c6e05 100644
+--- a/services/core/java/com/android/server/pm/PackageManagerService.java
++++ b/services/core/java/com/android/server/pm/PackageManagerService.java
+@@ -1607,9 +1607,11 @@ public class PackageManagerService extends IPackageManager.Stub
+                 }
+                 case MCS_GIVE_UP: {
+                     if (DEBUG_INSTALL) Slog.i(TAG, "mcs_giveup too many retries");
+-                    HandlerParams params = mPendingInstalls.remove(0);
+-                    Trace.asyncTraceEnd(TRACE_TAG_PACKAGE_MANAGER, "queueInstall",
+-                            System.identityHashCode(params));
++                    if (mPendingInstalls.size() > 0) {
++                        HandlerParams params = mPendingInstalls.remove(0);
++                        Trace.asyncTraceEnd(TRACE_TAG_PACKAGE_MANAGER, "queueInstall",
++                                System.identityHashCode(params));
++                    }
+                     break;
+                 }
+                 case SEND_PENDING_BROADCAST: {
+-- 
+2.14.1
+

@@ -1,0 +1,36 @@
+From 2a65197feb321407542cecb80a3bb55cd32677e3 Mon Sep 17 00:00:00 2001
+From: masaru nakamura <masaru.x.nakamura@sonymobile.com>
+Date: Thu, 15 Sep 2016 17:54:22 +0900
+Subject: [PATCH 29/47] Location: Skip processing when reciever pointer is null
+
+The system server crash occurred while performing handleLocationChanged
+because reciever pointer was NULL.
+So check reciver pointer and if null, skip processing.
+
+Bug: 80325689
+
+Change-Id: I424a120808788bf7d41747d107c5ed3ef5bd4c49
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ services/core/java/com/android/server/LocationManagerService.java | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/services/core/java/com/android/server/LocationManagerService.java b/services/core/java/com/android/server/LocationManagerService.java
+index 966e553a639..74a34ac2444 100644
+--- a/services/core/java/com/android/server/LocationManagerService.java
++++ b/services/core/java/com/android/server/LocationManagerService.java
+@@ -2640,6 +2640,11 @@ public class LocationManagerService extends ILocationManager.Stub {
+             Receiver receiver = r.mReceiver;
+             boolean receiverDead = false;
+ 
++            if (receiver == null) {
++                Slog.e(TAG, "skipping loc update for System server crash prevention");
++                continue;
++            }
++
+             int receiverUserId = UserHandle.getUserId(receiver.mIdentity.mUid);
+             if (!isCurrentProfile(receiverUserId)
+                     && !isUidALocationProvider(receiver.mIdentity.mUid)) {
+-- 
+2.11.0
+

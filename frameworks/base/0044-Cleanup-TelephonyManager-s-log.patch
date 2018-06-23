@@ -1,0 +1,31 @@
+From 01fabe5025625004692af479de7eb2012a9533dc Mon Sep 17 00:00:00 2001
+From: Pengquan Meng <mpq@google.com>
+Date: Tue, 20 Feb 2018 19:09:10 -0800
+Subject: [PATCH 44/47] Cleanup TelephonyManager's log
+
+Don't log success calls to TelephonyManager.setTelephonyProperty.
+
+Bug: 71514398
+Test: manual test
+Change-Id: I2383f1e2925bff959c3d925d7fdc8be891630c61
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ telephony/java/android/telephony/TelephonyManager.java | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/telephony/java/android/telephony/TelephonyManager.java b/telephony/java/android/telephony/TelephonyManager.java
+index d3f792b4e14..dde1259b19c 100644
+--- a/telephony/java/android/telephony/TelephonyManager.java
++++ b/telephony/java/android/telephony/TelephonyManager.java
+@@ -4346,8 +4346,6 @@ public class TelephonyManager {
+             return;
+         }
+ 
+-        Rlog.d(TAG, "setTelephonyProperty: success phoneId=" + phoneId +
+-                " property=" + property + " value: " + value + " propVal=" + propVal);
+         SystemProperties.set(property, propVal);
+     }
+ 
+-- 
+2.11.0
+

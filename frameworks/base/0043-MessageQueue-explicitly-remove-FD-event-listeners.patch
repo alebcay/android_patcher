@@ -1,0 +1,57 @@
+From 1c937a19bb0b628d95ea2421bba8d7cfd0623d5f Mon Sep 17 00:00:00 2001
+From: David Pursell <dpursell@google.com>
+Date: Mon, 7 Aug 2017 16:32:36 -0700
+Subject: [PATCH 43/47] MessageQueue: explicitly remove FD event listeners.
+
+When removing an FD listener from a MessageQueue, the MessageQueue waits
+until the next event callback on that FD to remove it from the
+underlying native Looper.
+
+This works as expected most of the time, but due to the epoll rebuild
+logic in the native Looper, there is a rare condition where FDs can get
+stuck in the Looper:
+  1. Register two or more FD listeners.
+  2. Unregister FD1 listener and close FD1.
+  3. Before the Looper processes FD1, get an event on FD2 and close it.
+(3) will trigger a rebuild of the epoll set but as FD1 is no longer
+valid it cannot be added back to the epoll set, and the MessageQueue
+will never get the final callback to clean it up.
+
+Each time this happens:
+ * There is a small memory leak (24-32 bytes) in native Looper
+ * Rebuilding the epoll set incurs slightly more processing
+ * An error is logged for each lost FD on each epoll rebuild
+This is fairly minimal, and does get cleaned up if the lost FDs is
+re-opened during an epoll rebuild (since it can now be added back in),
+but worst-case if a process somehow triggers this on a large number of
+FDs it might be noticeable.
+
+It seems worth it to just remove the FD explicitly right away to avoid
+this case altogether.
+
+Bug: 64083817
+Test: [aosp_x86-userdebug emulator] adb shell am instrument -w \
+    -e class android.os.cts.MessageQueueTest \
+    android.os.cts/android.support.test.runner.AndroidJUnitRunner
+
+Change-Id: I33faca37678439f4b28a4138efcdd80ea8952ab2
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/android/os/MessageQueue.java | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/core/java/android/os/MessageQueue.java b/core/java/android/os/MessageQueue.java
+index 624e28a67ae..0b98ecf919b 100644
+--- a/core/java/android/os/MessageQueue.java
++++ b/core/java/android/os/MessageQueue.java
+@@ -254,6 +254,7 @@ public final class MessageQueue {
+         } else if (record != null) {
+             record.mEvents = 0;
+             mFileDescriptorRecords.removeAt(index);
++            nativeSetFileDescriptorEvents(mPtr, fdNum, 0);
+         }
+     }
+ 
+-- 
+2.11.0
+

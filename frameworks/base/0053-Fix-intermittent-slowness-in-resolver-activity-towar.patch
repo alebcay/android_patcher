@@ -1,0 +1,268 @@
+From 8bf2b6376b470e9738a40e5060dd5834590c9ed1 Mon Sep 17 00:00:00 2001
+From: Danny Baumann <dannybaumann@web.de>
+Date: Wed, 1 Feb 2017 09:53:44 +0100
+Subject: [PATCH 53/66] Fix intermittent slowness in resolver activity towards
+ end of day.
+
+The resolver calls UsageStatsManager.queryUsageStats() to get package
+usage information. This causes all XMLs of the selected bucket to be
+read, which can be of significant size. However, the majority of that
+size is due to usage event information, which queryUsageStats() isn't
+interested in, so it'll parse a lot of data just to throw it away later
+on.
+Solution: Don't parse the portions of the XMLs we aren't interested in.
+
+Change-Id: Ia2595201c9fcceab2778618fd0cccfb19ad4ed8d
+---
+ .../android/server/usage/UsageStatsDatabase.java   | 23 +++++++++-----
+ .../com/android/server/usage/UsageStatsXml.java    |  9 +++---
+ .../com/android/server/usage/UsageStatsXmlV1.java  | 37 +++++++++++++++++++++-
+ .../server/usage/UserUsageStatsService.java        | 13 +++++---
+ 4 files changed, 64 insertions(+), 18 deletions(-)
+
+diff --git a/services/usage/java/com/android/server/usage/UsageStatsDatabase.java b/services/usage/java/com/android/server/usage/UsageStatsDatabase.java
+index e55e073cf06..233333de496 100644
+--- a/services/usage/java/com/android/server/usage/UsageStatsDatabase.java
++++ b/services/usage/java/com/android/server/usage/UsageStatsDatabase.java
+@@ -52,6 +52,13 @@ class UsageStatsDatabase {
+     // same as UsageStatsBackupHelper.KEY_USAGE_STATS
+     static final String KEY_USAGE_STATS = "usage_stats";
+ 
++    static final int QUERY_FLAG_FETCH_PACKAGES = 1 << 0;
++    static final int QUERY_FLAG_FETCH_CONFIGURATIONS = 1 << 1;
++    static final int QUERY_FLAG_FETCH_EVENTS = 1 << 2;
++    static final int QUERY_FLAG_FETCH_EVERYTHING =
++            QUERY_FLAG_FETCH_PACKAGES |
++            QUERY_FLAG_FETCH_CONFIGURATIONS |
++            QUERY_FLAG_FETCH_EVENTS;
+ 
+     private static final String TAG = "UsageStatsDatabase";
+     private static final boolean DEBUG = UsageStatsService.DEBUG;
+@@ -154,7 +161,7 @@ class UsageStatsDatabase {
+             try {
+                 IntervalStats stats = new IntervalStats();
+                 for (int i = start; i < fileCount - 1; i++) {
+-                    UsageStatsXml.read(files.valueAt(i), stats);
++                    UsageStatsXml.read(files.valueAt(i), stats, QUERY_FLAG_FETCH_EVERYTHING);
+                     if (!checkinAction.checkin(stats)) {
+                         return false;
+                     }
+@@ -357,7 +364,7 @@ class UsageStatsDatabase {
+             try {
+                 final AtomicFile f = mSortedStatFiles[intervalType].valueAt(fileCount - 1);
+                 IntervalStats stats = new IntervalStats();
+-                UsageStatsXml.read(f, stats);
++                UsageStatsXml.read(f, stats, QUERY_FLAG_FETCH_EVERYTHING);
+                 return stats;
+             } catch (IOException e) {
+                 Slog.e(TAG, "Failed to read usage stats file", e);
+@@ -390,7 +397,7 @@ class UsageStatsDatabase {
+      * Find all {@link IntervalStats} for the given range and interval type.
+      */
+     public <T> List<T> queryUsageStats(int intervalType, long beginTime, long endTime,
+-            StatCombiner<T> combiner) {
++            int flags, StatCombiner<T> combiner) {
+         synchronized (mLock) {
+             if (intervalType < 0 || intervalType >= mIntervalDirs.length) {
+                 throw new IllegalArgumentException("Bad interval type " + intervalType);
+@@ -443,7 +450,7 @@ class UsageStatsDatabase {
+                 }
+ 
+                 try {
+-                    UsageStatsXml.read(f, stats);
++                    UsageStatsXml.read(f, stats, flags);
+                     if (beginTime < stats.endTime) {
+                         combiner.combine(stats, false, results);
+                     }
+@@ -562,7 +569,7 @@ class UsageStatsDatabase {
+                     try {
+                         final AtomicFile af = new AtomicFile(f);
+                         final IntervalStats stats = new IntervalStats();
+-                        UsageStatsXml.read(af, stats);
++                        UsageStatsXml.read(af, stats, QUERY_FLAG_FETCH_EVERYTHING);
+                         final int pkgCount = stats.packageStats.size();
+                         for (int i = 0; i < pkgCount; i++) {
+                             UsageStats pkgStats = stats.packageStats.valueAt(i);
+@@ -730,7 +737,7 @@ class UsageStatsDatabase {
+             throws IOException {
+         IntervalStats stats = new IntervalStats();
+         try {
+-            UsageStatsXml.read(statsFile, stats);
++            UsageStatsXml.read(statsFile, stats, QUERY_FLAG_FETCH_EVERYTHING);
+         } catch (IOException e) {
+             Slog.e(TAG, "Failed to read usage stats file", e);
+             out.writeInt(0);
+@@ -775,7 +782,7 @@ class UsageStatsDatabase {
+         IntervalStats stats = new IntervalStats();
+         try {
+             stats.beginTime = in.readLong();
+-            UsageStatsXml.read(in, stats);
++            UsageStatsXml.read(in, stats, QUERY_FLAG_FETCH_EVERYTHING);
+         } catch (IOException ioe) {
+             Slog.d(TAG, "DeSerializing IntervalStats Failed", ioe);
+             stats = null;
+@@ -803,4 +810,4 @@ class UsageStatsDatabase {
+         }
+         directory.delete();
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/services/usage/java/com/android/server/usage/UsageStatsXml.java b/services/usage/java/com/android/server/usage/UsageStatsXml.java
+index e7db74149b4..82e76f35b0f 100644
+--- a/services/usage/java/com/android/server/usage/UsageStatsXml.java
++++ b/services/usage/java/com/android/server/usage/UsageStatsXml.java
+@@ -55,12 +55,13 @@ public class UsageStatsXml {
+         }
+     }
+ 
+-    public static void read(AtomicFile file, IntervalStats statsOut) throws IOException {
++    public static void read(AtomicFile file, IntervalStats statsOut, int flags)
++            throws IOException {
+         try {
+             FileInputStream in = file.openRead();
+             try {
+                 statsOut.beginTime = parseBeginTime(file);
+-                read(in, statsOut);
++                read(in, statsOut, flags);
+                 statsOut.lastTimeSaved = file.getLastModifiedTime();
+             } finally {
+                 try {
+@@ -87,7 +88,7 @@ public class UsageStatsXml {
+         }
+     }
+ 
+-    static void read(InputStream in, IntervalStats statsOut) throws IOException {
++    static void read(InputStream in, IntervalStats statsOut, int flags) throws IOException {
+         XmlPullParser parser = Xml.newPullParser();
+         try {
+             parser.setInput(in, "utf-8");
+@@ -96,7 +97,7 @@ public class UsageStatsXml {
+             try {
+                 switch (Integer.parseInt(versionStr)) {
+                     case 1:
+-                        UsageStatsXmlV1.read(parser, statsOut);
++                        UsageStatsXmlV1.read(parser, statsOut, flags);
+                         break;
+ 
+                     default:
+diff --git a/services/usage/java/com/android/server/usage/UsageStatsXmlV1.java b/services/usage/java/com/android/server/usage/UsageStatsXmlV1.java
+index cc53a9cc0b7..0c6f5a081af 100644
+--- a/services/usage/java/com/android/server/usage/UsageStatsXmlV1.java
++++ b/services/usage/java/com/android/server/usage/UsageStatsXmlV1.java
+@@ -288,7 +288,7 @@ final class UsageStatsXmlV1 {
+      * @param parser The parser from which to read events.
+      * @param statsOut The stats object to populate with the data from the XML file.
+      */
+-    public static void read(XmlPullParser parser, IntervalStats statsOut)
++    public static void read(XmlPullParser parser, IntervalStats statsOut, int flags)
+             throws XmlPullParserException, IOException {
+         statsOut.packageStats.clear();
+         statsOut.configurations.clear();
+@@ -310,14 +310,32 @@ final class UsageStatsXmlV1 {
+ 
+             final String tag = parser.getName();
+             switch (tag) {
++                case PACKAGES_TAG:
++                    if ((flags & UsageStatsDatabase.QUERY_FLAG_FETCH_PACKAGES) == 0) {
++                        skip(parser);
++                    }
++                    break;
++
+                 case PACKAGE_TAG:
+                     loadUsageStats(parser, statsOut);
+                     break;
+ 
++                case CONFIGURATIONS_TAG:
++                    if ((flags & UsageStatsDatabase.QUERY_FLAG_FETCH_CONFIGURATIONS) == 0) {
++                        skip(parser);
++                    }
++                    break;
++
+                 case CONFIG_TAG:
+                     loadConfigStats(parser, statsOut);
+                     break;
+ 
++                case EVENT_LOG_TAG:
++                    if ((flags & UsageStatsDatabase.QUERY_FLAG_FETCH_EVENTS) == 0) {
++                        skip(parser);
++                    }
++                    break;
++
+                 case EVENT_TAG:
+                     loadEvent(parser, statsOut);
+                     break;
+@@ -325,6 +343,23 @@ final class UsageStatsXmlV1 {
+         }
+     }
+ 
++    private static void skip(XmlPullParser parser) throws XmlPullParserException, IOException {
++        if (parser.getEventType() != XmlPullParser.START_TAG) {
++            throw new IllegalStateException();
++        }
++        int depth = 1;
++        while (depth != 0) {
++            switch (parser.next()) {
++            case XmlPullParser.END_TAG:
++                depth--;
++                break;
++            case XmlPullParser.START_TAG:
++                depth++;
++                break;
++            }
++        }
++    }
++
+     /**
+      * Writes the stats object to an XML file. The {@link XmlSerializer}
+      * has already written the <code><usagestats></code> tag, but attributes may still
+diff --git a/services/usage/java/com/android/server/usage/UserUsageStatsService.java b/services/usage/java/com/android/server/usage/UserUsageStatsService.java
+index 0abbb82a68a..82ac61876e9 100644
+--- a/services/usage/java/com/android/server/usage/UserUsageStatsService.java
++++ b/services/usage/java/com/android/server/usage/UserUsageStatsService.java
+@@ -236,7 +236,7 @@ class UserUsageStatsService {
+      * provided to select the stats to use from the IntervalStats object.
+      */
+     private <T> List<T> queryStats(int intervalType, final long beginTime, final long endTime,
+-            StatCombiner<T> combiner) {
++            int flags, StatCombiner<T> combiner) {
+         if (intervalType == UsageStatsManager.INTERVAL_BEST) {
+             intervalType = mDatabase.findBestFitBucket(beginTime, endTime);
+             if (intervalType < 0) {
+@@ -276,7 +276,7 @@ class UserUsageStatsService {
+ 
+         // Get the stats from disk.
+         List<T> results = mDatabase.queryUsageStats(intervalType, beginTime,
+-                truncatedEndTime, combiner);
++                truncatedEndTime, flags, combiner);
+         if (DEBUG) {
+             Slog.d(TAG, "Got " + (results != null ? results.size() : 0) + " results from disk");
+             Slog.d(TAG, "Current stats beginTime=" + currentStats.beginTime +
+@@ -302,18 +302,21 @@ class UserUsageStatsService {
+     }
+ 
+     List<UsageStats> queryUsageStats(int bucketType, long beginTime, long endTime) {
+-        return queryStats(bucketType, beginTime, endTime, sUsageStatsCombiner);
++        return queryStats(bucketType, beginTime, endTime,
++                UsageStatsDatabase.QUERY_FLAG_FETCH_PACKAGES, sUsageStatsCombiner);
+     }
+ 
+     List<ConfigurationStats> queryConfigurationStats(int bucketType, long beginTime, long endTime) {
+-        return queryStats(bucketType, beginTime, endTime, sConfigStatsCombiner);
++        return queryStats(bucketType, beginTime, endTime,
++                UsageStatsDatabase.QUERY_FLAG_FETCH_CONFIGURATIONS, sConfigStatsCombiner);
+     }
+ 
+     UsageEvents queryEvents(final long beginTime, final long endTime,
+             boolean obfuscateInstantApps) {
+         final ArraySet<String> names = new ArraySet<>();
+         List<UsageEvents.Event> results = queryStats(UsageStatsManager.INTERVAL_DAILY,
+-                beginTime, endTime, new StatCombiner<UsageEvents.Event>() {
++                beginTime, endTime, UsageStatsDatabase.QUERY_FLAG_FETCH_EVENTS,
++                new StatCombiner<UsageEvents.Event>() {
+                     @Override
+                     public void combine(IntervalStats stats, boolean mutable,
+                             List<UsageEvents.Event> accumulatedResult) {
+-- 
+2.14.1
+

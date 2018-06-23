@@ -1,0 +1,43 @@
+From c93e49fcd799de56fb893848677c44cb94f9c0fc Mon Sep 17 00:00:00 2001
+From: Tetsutoki Shiozawa <tetsutoki.shiozawa@sony.com>
+Date: Mon, 19 Feb 2018 10:24:43 +0900
+Subject: [PATCH 35/47] ConnectivityManager is initialized with a wrong context
+
+Symptom:
+BT tethering was failed due to security exception. The error message
+said it's requested by "android" package without system uid.
+
+Root cause:
+ActivityThread#setHttpProxy uses a system context to get
+a ConnectivityManager instance. Unexpectedly, ConnectivityManager with
+the system context is cached to the system service registry when it's
+not cached yet. The wrong context is always reused when getting
+ConnectivityManager.
+
+Solution:
+Use an Application context to get ConnectivityManager if it can be used.
+
+Bug: 73572062
+Change-Id: Id652c1625194dc73dcbf8dfcad4b4e2e6fbebf4e
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/android/app/ActivityThread.java | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/core/java/android/app/ActivityThread.java b/core/java/android/app/ActivityThread.java
+index 497f175aec7..4f22487b6b9 100644
+--- a/core/java/android/app/ActivityThread.java
++++ b/core/java/android/app/ActivityThread.java
+@@ -964,7 +964,8 @@ public final class ActivityThread {
+         }
+ 
+         public void setHttpProxy(String host, String port, String exclList, Uri pacFileUrl) {
+-            final ConnectivityManager cm = ConnectivityManager.from(getSystemContext());
++            final ConnectivityManager cm = ConnectivityManager.from(
++                getApplication() != null ? getApplication() : getSystemContext());
+             final Network network = cm.getBoundNetworkForProcess();
+             if (network != null) {
+                 Proxy.setHttpProxySystemProperty(cm.getDefaultProxy());
+-- 
+2.11.0
+

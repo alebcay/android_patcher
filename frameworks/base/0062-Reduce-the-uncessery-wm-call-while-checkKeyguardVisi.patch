@@ -1,0 +1,69 @@
+From 3b9c24194a19fd197e4061909212232cb8aff4b7 Mon Sep 17 00:00:00 2001
+From: "zhenjun.zhang" <zhenjun.zhang@spreadtrum.com>
+Date: Tue, 2 Jan 2018 13:01:11 +0800
+Subject: [PATCH 62/66] Reduce the uncessery wm call while
+ checkKeyguardVisibility
+
+We found that containsShowWhenLockedWindow and containsDismissKeyguardWindow
+ is called too many times when an Activity starting, and some of it's not necessary
+Reduce the uncessery call to reduce the wm's mWindowMap lock holds times
+
+Test: run Monkey, this change has 40 times fewer calls to
+containsShowWhenLockedWindow and containsDismissKeyguardWindow than before
+
+Change-Id: I9924b1f7a90174d037cfb03f9b34a2b8da2f36f5
+---
+ .../java/com/android/server/am/ActivityStack.java  | 27 +++++++++++-----------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
+
+diff --git a/services/core/java/com/android/server/am/ActivityStack.java b/services/core/java/com/android/server/am/ActivityStack.java
+index 14ec9a718de..61826381d71 100644
+--- a/services/core/java/com/android/server/am/ActivityStack.java
++++ b/services/core/java/com/android/server/am/ActivityStack.java
+@@ -1997,9 +1997,11 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
+         final boolean keyguardShowing = mStackSupervisor.mKeyguardController.isKeyguardShowing(
+                 mDisplayId != INVALID_DISPLAY ? mDisplayId : DEFAULT_DISPLAY);
+         final boolean keyguardLocked = mStackSupervisor.mKeyguardController.isKeyguardLocked();
+-        final boolean showWhenLocked = r.canShowWhenLocked() && !isInPinnedStack;
+-        final boolean dismissKeyguard = r.hasDismissKeyguardWindows();
+         if (shouldBeVisible) {
++            //showWhenLock is meaningful when r is on Top or keyguard is Locked
++            final boolean showWhenLocked = (isTop || keyguardLocked)
++                    && !isInPinnedStack && r.canShowWhenLocked();
++            final boolean dismissKeyguard = r.hasDismissKeyguardWindows();
+             if (dismissKeyguard && mTopDismissingKeyguardActivity == null) {
+                 mTopDismissingKeyguardActivity = r;
+             }
+@@ -2015,19 +2017,18 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
+             if (canShowWithKeyguard) {
+                 return true;
+             }
+-        }
+-        if (keyguardShowing) {
++            if (keyguardShowing) {
+ 
+-            // If keyguard is showing, nothing is visible, except if we are able to dismiss Keyguard
+-            // right away.
+-            return shouldBeVisible && mStackSupervisor.mKeyguardController
+-                    .canShowActivityWhileKeyguardShowing(r, dismissKeyguard);
+-        } else if (keyguardLocked) {
+-            return shouldBeVisible && mStackSupervisor.mKeyguardController.canShowWhileOccluded(
+-                    dismissKeyguard, showWhenLocked);
+-        } else {
+-            return shouldBeVisible;
++                // If keyguard is showing, nothing is visible, except if we are able to dismiss
++                // Keyguard right away.
++                return mStackSupervisor.mKeyguardController
++                        .canShowActivityWhileKeyguardShowing(r, dismissKeyguard);
++            } else if (keyguardLocked) {
++                return mStackSupervisor.mKeyguardController.canShowWhileOccluded(
++                        dismissKeyguard, showWhenLocked);
++            }
+         }
++        return shouldBeVisible;
+     }
+ 
+     /**
+-- 
+2.14.1
+

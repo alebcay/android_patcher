@@ -1,0 +1,34 @@
+From 7edf6e57a5f4c9010d09910b70e424857f7d92c1 Mon Sep 17 00:00:00 2001
+From: "zhenjun.zhang" <zhenjun.zhang@spreadtrum.com>
+Date: Mon, 5 Feb 2018 10:57:29 +0800
+Subject: [PATCH 49/66] GlobalActions: Fix systemserver crash issue
+
+The LegacyGlobalAction's dialog may be create in two thread, since view's UI operation
+can noly do in one thread, it may occur systemserver crash during monkey.
+
+Fix: create the dialog useing the handler thread only.
+Change-Id: I5302e33df572774cd622980c03765f3d059bf463
+---
+ services/core/java/com/android/server/policy/GlobalActions.java | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/services/core/java/com/android/server/policy/GlobalActions.java b/services/core/java/com/android/server/policy/GlobalActions.java
+index a17ff28cf89..87db3bd4cbf 100644
+--- a/services/core/java/com/android/server/policy/GlobalActions.java
++++ b/services/core/java/com/android/server/policy/GlobalActions.java
+@@ -91,8 +91,10 @@ class GlobalActions implements GlobalActionsListener {
+         mStatusBarConnected = connected;
+         if (mShowing && !mStatusBarConnected) {
+             // Status bar died but we need to be showing global actions still, show the legacy.
+-            ensureLegacyCreated();
+-            mLegacyGlobalActions.showDialog(mKeyguardShowing, mDeviceProvisioned);
++            mHandler.post(() -> {
++                ensureLegacyCreated();
++                mLegacyGlobalActions.showDialog(mKeyguardShowing, mDeviceProvisioned);
++            });
+         }
+     }
+ 
+-- 
+2.14.1
+

@@ -1,0 +1,34 @@
+From 66dd37ceec872e41ce52fa7db23113f61a0a624e Mon Sep 17 00:00:00 2001
+From: kaiyiz <kaiyiz@codeaurora.org>
+Date: Mon, 5 Jan 2015 10:44:19 +0800
+Subject: [PATCH 59/66] Widget: Catch null point exception in
+ AbsListViewAutoScroller
+
+The first view of AbsListView is null, so there is a NullPointerException
+happen.
+
+Add a judgement for the first view of AbsListView.
+
+CRs-Fixed: 776294
+
+Change-Id: I7e25d1430b1bab0cff313492163a419fbf5960b5
+---
+ core/java/com/android/internal/widget/AutoScrollHelper.java | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/core/java/com/android/internal/widget/AutoScrollHelper.java b/core/java/com/android/internal/widget/AutoScrollHelper.java
+index 0d468ca2494..ee4f28dfafc 100644
+--- a/core/java/com/android/internal/widget/AutoScrollHelper.java
++++ b/core/java/com/android/internal/widget/AutoScrollHelper.java
+@@ -912,7 +912,7 @@ public abstract class AutoScrollHelper implements View.OnTouchListener {
+                 // Are we already showing the entire first item?
+                 if (firstPosition <= 0) {
+                     final View firstView = target.getChildAt(0);
+-                    if (firstView.getTop() >= 0) {
++                    if (firstView == null || firstView.getTop() >= 0) {
+                         return false;
+                     }
+                 }
+-- 
+2.14.1
+

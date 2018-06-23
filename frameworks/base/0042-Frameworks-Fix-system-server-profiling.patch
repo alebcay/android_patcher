@@ -1,0 +1,52 @@
+From 0ad0dbf8c718c09364ec02183418729b6883997e Mon Sep 17 00:00:00 2001
+From: Andreas Gampe <agampe@google.com>
+Date: Wed, 14 Mar 2018 23:13:28 -0700
+Subject: [PATCH 42/47] Frameworks: Fix system server profiling
+
+Avoid a race to close the profiling file descriptor.
+
+Bug: 74883338
+Test: m
+Test: am profile start `pid system_server` /data/local/tmp/test.trace && sleep 5s && am profile stop `pid system_server` && adb pull /data/local/tmp/test.trace && [[ $(find test.trace -size +1K) ]] && echo Success
+Change-Id: Ib506ce38ac1ac7c0b91079ba9b35aca6ae289d22
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/android/app/ActivityThread.java                         | 2 +-
+ .../core/java/com/android/server/am/ActivityManagerService.java   | 8 ++++++++
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/core/java/android/app/ActivityThread.java b/core/java/android/app/ActivityThread.java
+index 4f22487b6b9..6849a80b2d3 100644
+--- a/core/java/android/app/ActivityThread.java
++++ b/core/java/android/app/ActivityThread.java
+@@ -612,7 +612,7 @@ public final class ActivityThread {
+                         streamingOutput);
+                 profiling = true;
+             } catch (RuntimeException e) {
+-                Slog.w(TAG, "Profiling failed on path " + profileFile);
++                Slog.w(TAG, "Profiling failed on path " + profileFile, e);
+                 try {
+                     profileFd.close();
+                     profileFd = null;
+diff --git a/services/core/java/com/android/server/am/ActivityManagerService.java b/services/core/java/com/android/server/am/ActivityManagerService.java
+index 29381473554..e97f2d7692c 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerService.java
++++ b/services/core/java/com/android/server/am/ActivityManagerService.java
+@@ -23626,6 +23626,14 @@ public class ActivityManagerService extends IActivityManager.Stub
+                     } catch (IOException e) {
+                     }
+                     mProfilerInfo.profileFd = null;
++
++                    if (proc.pid == MY_PID) {
++                        // When profiling the system server itself, avoid closing the file
++                        // descriptor, as profilerControl will not create a copy.
++                        // Note: it is also not correct to just set profileFd to null, as the
++                        //       whole ProfilerInfo instance is passed down!
++                        profilerInfo = null;
++                    }
+                 } else {
+                     stopProfilerLocked(proc, profileType);
+                     if (profilerInfo != null && profilerInfo.profileFd != null) {
+-- 
+2.11.0
+

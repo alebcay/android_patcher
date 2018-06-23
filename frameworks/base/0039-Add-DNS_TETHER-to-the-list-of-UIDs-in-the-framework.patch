@@ -1,0 +1,37 @@
+From 579207789498d2b8a7a9fae008a79f52475f51e7 Mon Sep 17 00:00:00 2001
+From: Lorenzo Colitti <lorenzo@google.com>
+Date: Thu, 1 Mar 2018 21:06:11 +0900
+Subject: [PATCH 39/47] Add DNS_TETHER to the list of UIDs in the framework.
+
+It has been reserved in android_filesystem_config.h since
+aosp/245632 in 2016, but was never included in the list of UIDs
+in Process.java.
+
+Bug: 29881876
+Test: builds, boots
+Change-Id: I6d36d7d15634445d992a10087b5ba31b480f9f20
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/android/os/Process.java | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/core/java/android/os/Process.java b/core/java/android/os/Process.java
+index 95a26689ca0..44735b936bb 100644
+--- a/core/java/android/os/Process.java
++++ b/core/java/android/os/Process.java
+@@ -140,6 +140,12 @@ public class Process {
+     public static final int CAMERASERVER_UID = 1047;
+ 
+     /**
++     * Defines the UID/GID for the tethering DNS resolver (currently dnsmasq).
++     * @hide
++     */
++    public static final int DNS_TETHER_UID = 1052;
++
++    /**
+      * Defines the UID/GID for the WebView zygote process.
+      * @hide
+      */
+-- 
+2.11.0
+

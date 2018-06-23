@@ -1,0 +1,40 @@
+From 0d0037c6d1c79a248357e0f056ce8d5df642dbbf Mon Sep 17 00:00:00 2001
+From: Shibin George <shibing@codeaurora.org>
+Date: Sat, 20 Jan 2018 14:22:11 +0530
+Subject: [PATCH 54/66] PackageManagerService: Avoid NPE in
+ matchComponentForVerifier
+
+mRequiredVerifierPackage, which is passed as an argument
+to matchComponentForVerifier, can be null - which causes
+Null pointer Exception during string comparison.
+Protect the call to matchComponentForVerifier with a null
+check on mRequiredVerifierPackage.
+
+Test: make successful
+
+Change-Id: Ie4253c44833a5b82e8e5b4159321e5db104d0eb7
+Signed-off-by: Shibin George <shibing@codeaurora.org>
+---
+ services/core/java/com/android/server/pm/PackageManagerService.java | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/services/core/java/com/android/server/pm/PackageManagerService.java b/services/core/java/com/android/server/pm/PackageManagerService.java
+index 1447fe97eee..7797544cadd 100644
+--- a/services/core/java/com/android/server/pm/PackageManagerService.java
++++ b/services/core/java/com/android/server/pm/PackageManagerService.java
+@@ -16677,10 +16677,10 @@ public class PackageManagerService extends IPackageManager.Stub
+                         }
+                     }
+ 
+-                    final ComponentName requiredVerifierComponent = matchComponentForVerifier(
+-                            mRequiredVerifierPackage, receivers);
+                     if (ret == PackageManager.INSTALL_SUCCEEDED
+                             && mRequiredVerifierPackage != null) {
++                        final ComponentName requiredVerifierComponent = matchComponentForVerifier(
++                                mRequiredVerifierPackage, receivers);
+                         Trace.asyncTraceBegin(
+                                 TRACE_TAG_PACKAGE_MANAGER, "verification", verificationId);
+                         /*
+-- 
+2.14.1
+

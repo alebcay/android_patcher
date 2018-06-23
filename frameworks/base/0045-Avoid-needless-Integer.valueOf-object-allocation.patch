@@ -1,0 +1,44 @@
+From ebf29825a11ebb2e58ad4454f6ca47095e1c7372 Mon Sep 17 00:00:00 2001
+From: Tobias Thierer <tobiast@google.com>
+Date: Thu, 21 Apr 2016 12:03:33 +0100
+Subject: [PATCH 45/47] Avoid needless Integer.valueOf() object allocation.
+
+Replaced call to method taking Object with call that takes int.
+
+Bug: 28289401
+Change-Id: I570ed9d40ca6239fab33355de2babefd509db9aa
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/android/view/ViewDebug.java                               | 2 +-
+ services/core/java/com/android/server/tv/TvInputManagerService.java | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/core/java/android/view/ViewDebug.java b/core/java/android/view/ViewDebug.java
+index 66c05785d6a..0341bc1853e 100644
+--- a/core/java/android/view/ViewDebug.java
++++ b/core/java/android/view/ViewDebug.java
+@@ -1665,7 +1665,7 @@ public class ViewDebug {
+                     + param + " is of type " + f.getType().getSimpleName());
+         }
+ 
+-        f.set(p, Integer.valueOf(value));
++        f.setInt(p, value);
+ 
+         view.post(new Runnable() {
+             @Override
+diff --git a/services/core/java/com/android/server/tv/TvInputManagerService.java b/services/core/java/com/android/server/tv/TvInputManagerService.java
+index 1afde550f02..82a3a95167c 100644
+--- a/services/core/java/com/android/server/tv/TvInputManagerService.java
++++ b/services/core/java/com/android/server/tv/TvInputManagerService.java
+@@ -1997,7 +1997,7 @@ public final class TvInputManagerService extends SystemService {
+                 pw.increaseIndent();
+                 for (int i = 0; i < mUserStates.size(); i++) {
+                     int userId = mUserStates.keyAt(i);
+-                    pw.println(Integer.valueOf(userId));
++                    pw.println(userId);
+                 }
+                 pw.decreaseIndent();
+ 
+-- 
+2.11.0
+

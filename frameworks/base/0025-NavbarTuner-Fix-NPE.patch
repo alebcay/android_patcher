@@ -1,0 +1,40 @@
+From f4000b523866261814299c63e4b8f530ae36ca7e Mon Sep 17 00:00:00 2001
+From: jhenrique09 <jhenrique09.mcz@hotmail.com>
+Date: Tue, 28 Nov 2017 15:25:57 -0200
+Subject: [PATCH 25/47] NavbarTuner: Fix NPE
+
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object com.android.systemui.Dependency.getDependency(java.lang.Class)' on a null object reference
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: 	at com.android.systemui.Dependency.get(Dependency.java:399)
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: 	at com.android.systemui.tuner.NavBarTuner.addTunable(NavBarTuner.java:148)
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: 	at com.android.systemui.tuner.NavBarTuner.bindLayout(NavBarTuner.java:152)
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: 	at com.android.systemui.tuner.NavBarTuner.onCreatePreferences(NavBarTuner.java:116)
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: 	at android.support.v14.preference.PreferenceFragment.onCreate(PreferenceFragment.java:235)
+11-28 14:21:36.798  5594  5594 E AndroidRuntime: 	at com.android.systemui.tuner.NavBarTuner.onCreate(NavBarTuner.java:97)
+
+Change-Id: I6aba0e72c5800ad80bafd3a6ab4882b7c4a8ade4
+Signed-off-by: Corey Edwards <ensabahnur16@gmail.com>
+---
+ packages/SystemUI/src/com/android/systemui/tuner/NavBarTuner.java | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/tuner/NavBarTuner.java b/packages/SystemUI/src/com/android/systemui/tuner/NavBarTuner.java
+index 45abd456ea1..43502dfe26d 100644
+--- a/packages/SystemUI/src/com/android/systemui/tuner/NavBarTuner.java
++++ b/packages/SystemUI/src/com/android/systemui/tuner/NavBarTuner.java
+@@ -110,8 +110,11 @@ public class NavBarTuner extends TunerPreferenceFragment {
+     }
+ 
+     private void addTunable(Tunable tunable, String... keys) {
+-        mTunables.add(tunable);
+-        Dependency.get(TunerService.class).addTunable(tunable, keys);
++        try {
++            mTunables.add(tunable);
++            Dependency.get(TunerService.class).addTunable(tunable, keys);
++        }catch (Exception e){
++        }
+     }
+ 
+     private void bindLayout(ListPreference preference) {
+-- 
+2.11.0
+

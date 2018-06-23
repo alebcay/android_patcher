@@ -1,0 +1,63 @@
+From 5d52264cdd9933fffdd9098f99e29559bfd4c9f4 Mon Sep 17 00:00:00 2001
+From: Hidehiko Tsuchiya <hidehiko.xa.tsuchiya@sonymobile.com>
+Date: Thu, 18 Jan 2018 13:50:55 +0900
+Subject: [PATCH 40/47] Defer deleting a http cache
+
+Symptom:
+StatementService was crashed due to the exception;
+"java.lang.IllegalStateException: cache is closed"
+
+Root cause:
+The http cache is deleted at DirectStatementService#onDestroy
+in main thread. If a worker thread is still alive and it tries to
+access the cache, it fails with IllegalStateException.
+
+Solution:
+The request of deleting a cache was moved from the main thread to
+worker. Now, the cache can be deleted safely.
+
+Bug: 73911877
+Change-Id: I61f4e62b00e35f4a272ef983758e61ef3bf2d180
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ .../statementservice/DirectStatementService.java   | 23 ++++++++++++----------
+ 1 file changed, 13 insertions(+), 10 deletions(-)
+
+diff --git a/packages/StatementService/src/com/android/statementservice/DirectStatementService.java b/packages/StatementService/src/com/android/statementservice/DirectStatementService.java
+index 449738e9c60..659696e0e21 100644
+--- a/packages/StatementService/src/com/android/statementservice/DirectStatementService.java
++++ b/packages/StatementService/src/com/android/statementservice/DirectStatementService.java
+@@ -155,17 +155,20 @@ public final class DirectStatementService extends Service {
+     @Override
+     public void onDestroy() {
+         super.onDestroy();
+-        if (mThread != null) {
+-            mThread.quit();
+-        }
+-
+-        try {
+-            if (mHttpResponseCache != null) {
+-                mHttpResponseCache.delete();
++        final HttpResponseCache responseCache = mHttpResponseCache;
++        mHandler.post(new Runnable() {
++            public void run() {
++                try {
++                    if (responseCache != null) {
++                        responseCache.delete();
++                    }
++                } catch (IOException e) {
++                    Log.i(TAG, "HTTP(S) response cache deletion failed:" + e);
++                }
++                Looper.myLooper().quit();
+             }
+-        } catch (IOException e) {
+-            Log.i(TAG, "HTTP(S) response cache deletion failed:" + e);
+-        }
++        });
++        mHttpResponseCache = null;
+     }
+ 
+     @Override
+-- 
+2.11.0
+

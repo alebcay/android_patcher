@@ -1,0 +1,128 @@
+From 60efcf17976f1b82e8f58ba6dc4e181b99761899 Mon Sep 17 00:00:00 2001
+From: John Zhao <yuankuiz@qualcomm.corp-partner.google.com>
+Date: Tue, 22 May 2018 11:13:31 +0800
+Subject: [PATCH 31/47] base: BatteryStats stat cpufreq access check
+
+The "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state" is
+depends on the "CONFIG_CPU_FREQ_STAT=y" inside of kernel config,
+which is often be off as can save additional stat obviously.
+
+Test: toggeling the above option in kernel config and get the logcat.
+
+Change-Id: I6553f7f78d8a0f719050be7bedcd005898c9f95f
+Signed-off-by: John Zhao <yuankuiz@qualcomm.corp-partner.google.com>
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ .../com/android/internal/os/BatteryStatsImpl.java   | 21 ++++++++++++---------
+ .../android/internal/os/KernelCpuSpeedReader.java   | 14 +++++++++++++-
+ 2 files changed, 25 insertions(+), 10 deletions(-)
+
+diff --git a/core/java/com/android/internal/os/BatteryStatsImpl.java b/core/java/com/android/internal/os/BatteryStatsImpl.java
+index f26c0cdfe95..251d8f81416 100644
+--- a/core/java/com/android/internal/os/BatteryStatsImpl.java
++++ b/core/java/com/android/internal/os/BatteryStatsImpl.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (C) 2006-2007 The Android Open Source Project
++ * Copyright (C) 2006-2007, 2018 The Android Open Source Project
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -10632,18 +10632,21 @@ public class BatteryStatsImpl extends BatteryStats {
+             }
+         }
+ 
+-        long totalCpuClustersTimeMs = 0;
++        long[] totalCpuClustersTimeMs = new long[mKernelCpuSpeedReaders.length];
+         // Read the time spent for each cluster at various cpu frequencies.
+         final long[][] clusterSpeedTimesMs = new long[mKernelCpuSpeedReaders.length][];
+         for (int cluster = 0; cluster < mKernelCpuSpeedReaders.length; cluster++) {
+-            clusterSpeedTimesMs[cluster] = mKernelCpuSpeedReaders[cluster].readDelta();
+-            if (clusterSpeedTimesMs[cluster] != null) {
+-                for (int speed = clusterSpeedTimesMs[cluster].length - 1; speed >= 0; --speed) {
+-                    totalCpuClustersTimeMs += clusterSpeedTimesMs[cluster][speed];
++            if (true == mKernelCpuSpeedReaders[cluster].getAvailability()) {
++                clusterSpeedTimesMs[cluster] = mKernelCpuSpeedReaders[cluster].readDelta();
++                if (clusterSpeedTimesMs[cluster] != null) {
++                    for (int speed = clusterSpeedTimesMs[cluster].length - 1; speed >= 0; --speed) {
++                        totalCpuClustersTimeMs[cluster] += clusterSpeedTimesMs[cluster][speed];
++                    }
+                 }
+             }
+         }
+-        if (totalCpuClustersTimeMs != 0) {
++        for (int cluster = 0; cluster < mKernelCpuSpeedReaders.length; cluster++) {
++            if (totalCpuClustersTimeMs[cluster] == 0) continue;
+             // We have cpu times per freq aggregated over all uids but we need the times per uid.
+             // So, we distribute total time spent by an uid to different cpu freqs based on the
+             // amount of time cpu was running at that freq.
+@@ -10658,7 +10661,7 @@ public class BatteryStatsImpl extends BatteryStats {
+                     u.mCpuClusterSpeedTimesUs = new LongSamplingCounter[numClusters][];
+                 }
+ 
+-                for (int cluster = 0; cluster < clusterSpeedTimesMs.length; cluster++) {
++                for (cluster = 0; cluster < clusterSpeedTimesMs.length; cluster++) {
+                     final int speedsInCluster = clusterSpeedTimesMs[cluster].length;
+                     if (u.mCpuClusterSpeedTimesUs[cluster] == null || speedsInCluster !=
+                             u.mCpuClusterSpeedTimesUs[cluster].length) {
+@@ -10673,7 +10676,7 @@ public class BatteryStatsImpl extends BatteryStats {
+                         }
+                         cpuSpeeds[speed].addCountLocked(appCpuTimeUs
+                                 * clusterSpeedTimesMs[cluster][speed]
+-                                / totalCpuClustersTimeMs);
++                                / totalCpuClustersTimeMs[cluster]);
+                     }
+                 }
+             }
+diff --git a/core/java/com/android/internal/os/KernelCpuSpeedReader.java b/core/java/com/android/internal/os/KernelCpuSpeedReader.java
+index 757a1121acf..88f6ef6aa30 100644
+--- a/core/java/com/android/internal/os/KernelCpuSpeedReader.java
++++ b/core/java/com/android/internal/os/KernelCpuSpeedReader.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (C) 2015 The Android Open Source Project
++ * Copyright (C) 2015, 2018 The Android Open Source Project
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -22,6 +22,7 @@ import android.util.Slog;
+ 
+ import libcore.io.Libcore;
+ 
++import java.io.File;
+ import java.io.BufferedReader;
+ import java.io.FileReader;
+ import java.io.IOException;
+@@ -41,6 +42,7 @@ public class KernelCpuSpeedReader {
+     private final String mProcFile;
+     private final long[] mLastSpeedTimesMs;
+     private final long[] mDeltaSpeedTimesMs;
++    private boolean mAvailable;
+ 
+     // How long a CPU jiffy is in milliseconds.
+     private final long mJiffyMillis;
+@@ -55,6 +57,12 @@ public class KernelCpuSpeedReader {
+         mDeltaSpeedTimesMs = new long[numSpeedSteps];
+         long jiffyHz = Libcore.os.sysconf(OsConstants._SC_CLK_TCK);
+         mJiffyMillis = 1000/jiffyHz;
++        if (new File(mProcFile).exists()) {
++            mAvailable = true;
++        } else {
++            mAvailable = false;
++            Slog.d(TAG, "Cpufreq Stats file is not found at:" + mProcFile + ".");
++        }
+     }
+ 
+     /**
+@@ -91,4 +99,8 @@ public class KernelCpuSpeedReader {
+         }
+         return mDeltaSpeedTimesMs;
+     }
++
++    public boolean getAvailability() {
++        return mAvailable;
++    }
+ }
+-- 
+2.11.0
+

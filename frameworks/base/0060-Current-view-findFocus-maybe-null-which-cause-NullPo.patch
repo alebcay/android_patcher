@@ -1,0 +1,35 @@
+From f47fb4bf03d8c98c958bd75a71a76e0efcbee50a Mon Sep 17 00:00:00 2001
+From: duzhaoxi <du.zhaoxi@zte.com.cn>
+Date: Fri, 11 Apr 2014 09:11:39 +0800
+Subject: [PATCH 60/66] Current view findFocus maybe null, which cause
+ NullPointerException.
+
+When run monkey test on TabHost application, easily reproduce the NullPointerException.
+Refactor bad code to better.
+Signed-off-by: duzhaoxi <du.zhaoxi@zte.com.cn>
+
+Change-Id: I80757489e23cedecb18a9bb978c567d02111b53c
+---
+ core/java/android/widget/TabHost.java | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/core/java/android/widget/TabHost.java b/core/java/android/widget/TabHost.java
+index 8696d0d5df7..4628f51481c 100644
+--- a/core/java/android/widget/TabHost.java
++++ b/core/java/android/widget/TabHost.java
+@@ -380,8 +380,11 @@ mTabHost.addTab(TAB_TAG_1, "Hello, world!", "Tab 1");
+                     soundEffect = SoundEffectConstants.NAVIGATION_UP;
+                     break;
+             }
++
++            View focusView = mCurrentView.findFocus();
++
+             if (event.getKeyCode() == keyCodeShouldChangeFocus
+-                    && mCurrentView.findFocus().focusSearch(directionShouldChangeFocus) == null) {
++                    && (focusView == null || focusView.focusSearch(directionShouldChangeFocus) == null)) {
+                 mTabWidget.getChildTabViewAt(mCurrentTab).requestFocus();
+                 playSoundEffect(soundEffect);
+                 return true;
+-- 
+2.14.1
+

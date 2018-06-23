@@ -1,0 +1,48 @@
+From 919829e5ea1b23802fb9f4a9fadaf133e0511323 Mon Sep 17 00:00:00 2001
+From: tiansiming <tiansiming@xiaomi.com>
+Date: Sun, 14 Jan 2018 18:42:57 +0800
+Subject: [PATCH 58/66] Optimize setStorageEncryption code
+
+If the filesystem does not support encryption,
+getActiveAdminForCallerLocked is not necessary to be called
+
+Bug: N/A
+Test: N/A
+
+Change-Id: Iebb5ba1043332a2bee67626fe1344e13146138da
+Signed-off-by: tiansiming <tiansiming@xiaomi.com>
+---
+ .../android/server/devicepolicy/DevicePolicyManagerService.java  | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/services/devicepolicy/java/com/android/server/devicepolicy/DevicePolicyManagerService.java b/services/devicepolicy/java/com/android/server/devicepolicy/DevicePolicyManagerService.java
+index 5268383ade5..874789f38a0 100644
+--- a/services/devicepolicy/java/com/android/server/devicepolicy/DevicePolicyManagerService.java
++++ b/services/devicepolicy/java/com/android/server/devicepolicy/DevicePolicyManagerService.java
+@@ -5832,19 +5832,18 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub {
+             // Only system user can set storage encryption
+             if (userHandle != UserHandle.USER_SYSTEM) {
+                 Slog.w(LOG_TAG, "Only owner/system user is allowed to set storage encryption. User "
+-                        + UserHandle.getCallingUserId() + " is not permitted.");
+-                return 0;
++                        + userHandle + " is not permitted.");
++                return DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED;
+             }
+ 
+-            ActiveAdmin ap = getActiveAdminForCallerLocked(who,
+-                    DeviceAdminInfo.USES_ENCRYPTED_STORAGE);
+-
+             // Quick exit:  If the filesystem does not support encryption, we can exit early.
+             if (!isEncryptionSupported()) {
+                 return DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED;
+             }
+ 
+             // (1) Record the value for the admin so it's sticky
++            ActiveAdmin ap = getActiveAdminForCallerLocked(who,
++                    DeviceAdminInfo.USES_ENCRYPTED_STORAGE);
+             if (ap.encryptionRequested != encrypt) {
+                 ap.encryptionRequested = encrypt;
+                 saveSettingsLocked(userHandle);
+-- 
+2.14.1
+

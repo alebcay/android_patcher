@@ -1,0 +1,33 @@
+From 25e5cce5cf3ccf3ca26196b36a1ce8ebd8b4bed4 Mon Sep 17 00:00:00 2001
+From: "qiushi.han" <qiushi.han@spreadtrum.com>
+Date: Mon, 21 May 2018 10:32:35 +0800
+Subject: [PATCH 30/47] WindowManager: Fix redundant orientation change
+
+When one activity exits early and the activity
+we launched next is not prepared, the previous
+rotation should be used, however the initial
+rotation is set to be unspecified rather than unset.
+
+Test: Rotation in several scenes.
+Change-Id: I3f0a7aaa765cd632028254b929bdfcea4a679b44
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ services/core/java/com/android/server/wm/WindowContainer.java | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/services/core/java/com/android/server/wm/WindowContainer.java b/services/core/java/com/android/server/wm/WindowContainer.java
+index 3df73d7c627..2b87c18cb2c 100644
+--- a/services/core/java/com/android/server/wm/WindowContainer.java
++++ b/services/core/java/com/android/server/wm/WindowContainer.java
+@@ -71,7 +71,7 @@ class WindowContainer<E extends WindowContainer> implements Comparable<WindowCon
+     private Configuration mMergedOverrideConfiguration = new Configuration();
+ 
+     // The specified orientation for this window container.
+-    protected int mOrientation = SCREEN_ORIENTATION_UNSPECIFIED;
++    protected int mOrientation = SCREEN_ORIENTATION_UNSET;
+ 
+     private final Pools.SynchronizedPool<ForAllWindowsConsumerWrapper> mConsumerWrapperPool =
+             new Pools.SynchronizedPool<>(3);
+-- 
+2.11.0
+

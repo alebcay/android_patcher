@@ -1,0 +1,32 @@
+From 4e28dc91326595694922d772d830854e3229dd9b Mon Sep 17 00:00:00 2001
+From: maxwen <max.weninger@gmail.com>
+Date: Thu, 21 Sep 2017 16:18:34 +0200
+Subject: [PATCH 26/47] Don't spoil printservice log if not needed
+
+Change-Id: I6629a6cd3b967f215907e9f9cf2deee3d58a2238
+---
+ .../printservice/recommendation/RecommendationService.java        | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/core/java/android/printservice/recommendation/RecommendationService.java b/core/java/android/printservice/recommendation/RecommendationService.java
+index 733629aa356..0f50c73c664 100644
+--- a/core/java/android/printservice/recommendation/RecommendationService.java
++++ b/core/java/android/printservice/recommendation/RecommendationService.java
+@@ -124,8 +124,12 @@ public abstract class RecommendationService extends Service {
+                     // the connection change has not guarantee when the connection change binder
+                     // transaction is actually processed.
+                     try {
+-                        mCallbacks.onRecommendationsUpdated((List<RecommendationInfo>) msg.obj);
+-                    } catch (RemoteException | NullPointerException e) {
++                        if (mCallbacks != null) {
++                            mCallbacks.onRecommendationsUpdated((List<RecommendationInfo>) msg.obj);
++                        } else {
++                            Log.e(LOG_TAG, "Could not update services mCallbacks = null");
++                        }
++                    } catch (RemoteException e) {
+                         Log.e(LOG_TAG, "Could not update recommended services", e);
+                     }
+                     break;
+-- 
+2.11.0
+

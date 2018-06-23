@@ -1,0 +1,59 @@
+From c9cb0049aff285d3cb4f47ab4951d0628a72eca1 Mon Sep 17 00:00:00 2001
+From: Calin Juravle <calin@google.com>
+Date: Thu, 10 Aug 2017 17:23:00 -0700
+Subject: [PATCH 65/66] Ensure dexopt is executed only with consistent package
+ data
+
+The main objects bookkeeping packages (PackageParser.Package and its
+corresponding ApplicationInfo) may be updated at different times. This
+creates a window where the data stored in the ApplicationInfo is out of
+date with respect to the data stored in PackageParser.Package.
+
+During install, the two objects are "synced" during doRename which updates
+the package code paths.
+
+This CLs moves the dexopt invocation from the install flow after doRename
+to ensure that dexopt logic gets a consistent view of the package.
+
+(cherry picked from commit 4c2b9555b7b52359ea14e201d7ec61b8edaf6232)
+
+Bug: 64493351
+
+Test: run cts-dev -t android.appsecurity.cts.ClassloaderSplitsTest -m
+CtsAppSecurityHostTestCases
+      inspect oat files after
+adb install-multiple CtsClassloaderSplitApp/CtsClassloaderSplitApp.apk
+    CtsClassloaderSplitAppFeatureA/CtsClassloaderSplitAppFeatureA.apk
+    CtsClassloaderSplitAppFeatureB/CtsClassloaderSplitAppFeatureB.apk
+
+Merged-In: I9131bcf49eb473a8fdc5eb0032d94080d4e9e94b
+Change-Id: I9131bcf49eb473a8fdc5eb0032d94080d4e9e94b
+---
+ .../core/java/com/android/server/pm/PackageDexOptimizer.java  | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/services/core/java/com/android/server/pm/PackageDexOptimizer.java b/services/core/java/com/android/server/pm/PackageDexOptimizer.java
+index 140c03ed607..ada3dcee5ab 100644
+--- a/services/core/java/com/android/server/pm/PackageDexOptimizer.java
++++ b/services/core/java/com/android/server/pm/PackageDexOptimizer.java
+@@ -166,6 +166,17 @@ public class PackageDexOptimizer {
+                 + (splitCodePaths == null ? "null" : Arrays.toString(splitCodePaths)));
+         }
+ 
++        // Sanity check that we do not call dexopt with inconsistent data.
++        if (paths.size() != classLoaderContexts.length) {
++            String[] splitCodePaths = pkg.applicationInfo.getSplitCodePaths();
++            throw new IllegalStateException("Inconsistent information "
++                + "between PackageParser.Package and its ApplicationInfo. "
++                + "pkg.getAllCodePaths=" + paths
++                + " pkg.applicationInfo.getBaseCodePath=" + pkg.applicationInfo.getBaseCodePath()
++                + " pkg.applicationInfo.getSplitCodePaths="
++                + (splitCodePaths == null ? "null" : Arrays.toString(splitCodePaths)));
++        }
++
+         int result = DEX_OPT_SKIPPED;
+         for (int i = 0; i < paths.size(); i++) {
+             // Skip paths that have no code.
+-- 
+2.14.1
+

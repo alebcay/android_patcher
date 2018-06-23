@@ -1,0 +1,59 @@
+From ed7491bc428b3593a1cefc3036b46418a21b4777 Mon Sep 17 00:00:00 2001
+From: yuanhuihui <yuanhuihui@xiaomi.com>
+Date: Sat, 18 Mar 2017 19:34:31 +0800
+Subject: [PATCH 38/47] fix misleading FATAL EXCEPTION IN SYSTEM PROCESS log
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+There will be the following situations about mApplicationObject：
+
+1) fork app process will invoke ActivityThread.main(),
+then set mApplicationObject.
+
+2) fork system_server， don't set mApplicationObject value.
+
+3) using app_process fork process except zygote, will inovke RuntimeInit,
+don't set mApplicationObject value。
+
+For example using command as below:
+app_process /system/bin com.android.commands.am.Am "$@",
+
+if this process throw uncaught exception，will output FATAL EXCEPTION IN SYSTEM PROCESS log，
+it's not in system process but in normal process。
+
+so should add condition： Process.SYSTEM_UID == Process.myUid()
+
+BUG: 72759350
+Test: manual
+
+Change-Id: Ie8d769e4149cd9b938577058de871c4f8db9efe5
+Signed-off-by: yuanhuihui <yuanhuihui@xiaomi.com>
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/com/android/internal/os/RuntimeInit.java | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/core/java/com/android/internal/os/RuntimeInit.java b/core/java/com/android/internal/os/RuntimeInit.java
+index d6d07f0d964..e9cc03cad5d 100644
+--- a/core/java/com/android/internal/os/RuntimeInit.java
++++ b/core/java/com/android/internal/os/RuntimeInit.java
+@@ -71,10 +71,11 @@ public class RuntimeInit {
+         public void uncaughtException(Thread t, Throwable e) {
+             // Don't re-enter if KillApplicationHandler has already run
+             if (mCrashing) return;
+-            if (mApplicationObject == null) {
+-                // The "FATAL EXCEPTION" string is still used on Android even though
+-                // apps can set a custom UncaughtExceptionHandler that renders uncaught
+-                // exceptions non-fatal.
++
++            // mApplicationObject is null for non-zygote java programs (e.g. "am")
++            // There are also apps running with the system UID. We don't want the
++            // first clause in either of these two cases, only for system_server.
++            if (mApplicationObject == null && (Process.SYSTEM_UID == Process.myUid())) {
+                 Clog_e(TAG, "*** FATAL EXCEPTION IN SYSTEM PROCESS: " + t.getName(), e);
+             } else {
+                 StringBuilder message = new StringBuilder();
+-- 
+2.11.0
+

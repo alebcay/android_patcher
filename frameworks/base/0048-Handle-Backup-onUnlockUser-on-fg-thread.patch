@@ -1,0 +1,54 @@
+From fd953857c8e9b8fdec2f121a33cfbf9b7cbc2925 Mon Sep 17 00:00:00 2001
+From: liulvping <liulvping@xiaomi.com>
+Date: Wed, 3 Jan 2018 16:27:45 +0800
+Subject: [PATCH 48/66] Handle Backup onUnlockUser on fg thread
+
+BackupManagerServicec.onUnlockUser can block ActivityManager thread
+for 300+ ms. It's safe to running anynchronous.
+
+Test: Enable backup/rebooted the device and unlocked
+Test: Create/Switch to guset user + enable backup
+
+Change-Id: I87cd9e97b8a9c1c37f0ac05eeb761073e56585dd
+Signed-off-by: liulvping <liulvping@xiaomi.com>
+---
+ .../java/com/android/server/backup/BackupManagerService.java      | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/services/backup/java/com/android/server/backup/BackupManagerService.java b/services/backup/java/com/android/server/backup/BackupManagerService.java
+index 0dd518141cf..b6fd0729931 100644
+--- a/services/backup/java/com/android/server/backup/BackupManagerService.java
++++ b/services/backup/java/com/android/server/backup/BackupManagerService.java
+@@ -123,6 +123,7 @@ import com.android.internal.util.ArrayUtils;
+ import com.android.internal.util.DumpUtils;
+ import com.android.server.AppWidgetBackupBridge;
+ import com.android.server.EventLogTags;
++import com.android.server.FgThread;
+ import com.android.server.SystemConfig;
+ import com.android.server.SystemService;
+ import com.android.server.backup.PackageManagerBackupAgent.Metadata;
+@@ -398,7 +399,12 @@ public class BackupManagerService implements BackupManagerServiceInterface {
+ 
+         @Override
+         public void onUnlockUser(int userId) {
++            FgThread.getHandler().post(() -> onUserUnlocked(userId));
++        }
++
++        private void onUserUnlocked(int userId) {
+             if (userId == UserHandle.USER_SYSTEM) {
++                final long start = SystemClock.elapsedRealtime();
+                 Trace.traceBegin(Trace.TRACE_TAG_ACTIVITY_MANAGER, "backup init");
+                 sInstance.initialize(userId);
+                 Trace.traceEnd(Trace.TRACE_TAG_ACTIVITY_MANAGER);
+@@ -434,6 +440,8 @@ public class BackupManagerService implements BackupManagerServiceInterface {
+                     // can't happen; it's a local object
+                 }
+                 Trace.traceEnd(Trace.TRACE_TAG_ACTIVITY_MANAGER);
++                Slog.i(TAG, "Async processing of onUserUnlocked u" + userId
++                        + " tooks " + (SystemClock.elapsedRealtime() - start) + " ms");
+             }
+         }
+     }
+-- 
+2.14.1
+

@@ -1,0 +1,29 @@
+From 570bb2e2d3ffe7addcc680e8fc9258fb4c576f15 Mon Sep 17 00:00:00 2001
+From: liuweiquan <liuweiquan@xiaomi.com>
+Date: Sat, 28 Apr 2018 17:05:02 +0800
+Subject: [PATCH 37/47] Toast: Fix duplicated to add View of Toast
+
+Test: Toast
+
+Change-Id: Ib3d2440ea1323a09efe463edb17addf0220e902c
+Signed-off-by: liuweiquan <liuweiquan@xiaomi.com>
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ core/java/android/view/WindowManagerGlobal.java | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/core/java/android/view/WindowManagerGlobal.java b/core/java/android/view/WindowManagerGlobal.java
+index c7e8dee3da8..ae845796894 100644
+--- a/core/java/android/view/WindowManagerGlobal.java
++++ b/core/java/android/view/WindowManagerGlobal.java
+@@ -356,6 +356,7 @@ public final class WindowManagerGlobal {
+                 root.setView(view, wparams, panelParentView);
+             } catch (RuntimeException e) {
+                 // BadTokenException or InvalidDisplayException, clean up.
++                index = findViewLocked(view, false);
+                 if (index >= 0) {
+                     removeViewLocked(index, true);
+                 }
+-- 
+2.11.0
+

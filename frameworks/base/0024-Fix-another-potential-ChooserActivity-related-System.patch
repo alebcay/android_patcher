@@ -1,0 +1,53 @@
+From 334eef188ad078ce68dc091dac33f61aa9ad9bd1 Mon Sep 17 00:00:00 2001
+From: Ezio Lacandia Bijelkic <brabus84@gmail.com>
+Date: Wed, 16 May 2018 08:31:03 -0400
+Subject: [PATCH 24/47] Fix another potential ChooserActivity related System FC
+
+happened on Chrome when tapping on a link to download a zip
+that i already downloaded previously
+
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: FATAL EXCEPTION: AsyncTask #1
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: Process: system:ui, PID: 18187
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: java.lang.RuntimeException: An error occurred while executing doInBackground()
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at android.os.AsyncTask$3.done(AsyncTask.java:353)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.util.concurrent.FutureTask.finishCompletion(FutureTask.java:383)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.util.concurrent.FutureTask.setException(FutureTask.java:252)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.util.concurrent.FutureTask.run(FutureTask.java:271)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at android.os.AsyncTask$SerialExecutor$1.run(AsyncTask.java:245)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1162)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:636)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.lang.Thread.run(Thread.java:764)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'android.graphics.drawable.Drawable android.util.IconDrawableFactory.getShadowedIcon(android.graphics.drawable.Drawable)' on a null object reference
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at com.android.internal.app.ResolverActivity.loadIconForResolveInfo(ResolverActivity.java:489)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at com.android.internal.app.ResolverActivity$LoadIconTask.doInBackground(ResolverActivity.java:1985)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at com.android.internal.app.ResolverActivity$LoadIconTask.doInBackground(ResolverActivity.java:1983)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at android.os.AsyncTask$2.call(AsyncTask.java:333)
+05-16 13:56:38.681 18187 18205 E AndroidRuntime: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+
+Change-Id: I5cf64341a32e30f744382b50f1d739e12a2f348d
+Signed-off-by: Corey Edwards <ensabahnur16@gmail.com>
+---
+ core/java/com/android/internal/app/ResolverActivity.java | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/core/java/com/android/internal/app/ResolverActivity.java b/core/java/com/android/internal/app/ResolverActivity.java
+index ceb06f51110..944a2c68607 100644
+--- a/core/java/com/android/internal/app/ResolverActivity.java
++++ b/core/java/com/android/internal/app/ResolverActivity.java
+@@ -475,7 +475,13 @@ public class ResolverActivity extends Activity {
+ 
+     Drawable loadIconForResolveInfo(ResolveInfo ri) {
+         Drawable dr;
++        if (mIconFactory == null) {
++            mIconFactory = IconDrawableFactory.newInstance(ResolverActivity.this, true);
++        }
+         try {
++            if (mIconFactory == null) {
++                mIconFactory = IconDrawableFactory.newInstance(ResolverActivity.this, true);
++            }
+             if (ri.resolvePackageName != null && ri.icon != 0) {
+                 dr = getIcon(mPm.getResourcesForApplication(ri.resolvePackageName), ri.icon);
+                 if (dr != null) {
+-- 
+2.11.0
+

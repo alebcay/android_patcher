@@ -1,0 +1,80 @@
+From 50430b7d3e3c9e8f394a79da9becec6dee46dd87 Mon Sep 17 00:00:00 2001
+From: Pavlin Radoslavov <pavlin@google.com>
+Date: Mon, 18 Dec 2017 12:56:18 -0800
+Subject: [PATCH 41/47] Removed executable flag for Java source files
+
+Test: Code compilation
+Change-Id: Ibfb57c6af54ace94eb9f9915471738f2f09ca70a
+Signed-off-by: Simao Gomes Viana <xdevs23@outlook.com>
+Signed-off-by: Adesh15 <adesikha15@gmail.com>
+---
+ .../SettingsLib/src/com/android/settingslib/bluetooth/A2dpProfile.java    | 0
+ .../src/com/android/settingslib/bluetooth/A2dpSinkProfile.java            | 0
+ .../src/com/android/settingslib/bluetooth/BluetoothEventManager.java      | 0
+ .../com/android/settingslib/bluetooth/CachedBluetoothDeviceManager.java   | 0
+ .../SettingsLib/src/com/android/settingslib/bluetooth/HeadsetProfile.java | 0
+ .../src/com/android/settingslib/bluetooth/HfpClientProfile.java           | 0
+ .../SettingsLib/src/com/android/settingslib/bluetooth/HidProfile.java     | 0
+ .../src/com/android/settingslib/bluetooth/LocalBluetoothProfile.java      | 0
+ .../SettingsLib/src/com/android/settingslib/bluetooth/OppProfile.java     | 0
+ .../SettingsLib/src/com/android/settingslib/bluetooth/PanProfile.java     | 0
+ .../src/com/android/settingslib/bluetooth/PbapClientProfile.java          | 0
+ .../src/com/android/settingslib/bluetooth/PbapServerProfile.java          | 0
+ .../src/com/android/settingslib/inputmethod/InputMethodPreference.java    | 0
+ 13 files changed, 0 insertions(+), 0 deletions(-)
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/A2dpProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/A2dpSinkProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothEventManager.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDeviceManager.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/HeadsetProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/HfpClientProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/HidProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/LocalBluetoothProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/OppProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/PanProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/PbapClientProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/bluetooth/PbapServerProfile.java
+ mode change 100755 => 100644 packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java
+
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/A2dpProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/A2dpProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/A2dpSinkProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/A2dpSinkProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothEventManager.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothEventManager.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDeviceManager.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/CachedBluetoothDeviceManager.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/HeadsetProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/HeadsetProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/HfpClientProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/HfpClientProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/HidProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/HidProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/LocalBluetoothProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/LocalBluetoothProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/OppProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/OppProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/PanProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/PanProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/PbapClientProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/PbapClientProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/PbapServerProfile.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/PbapServerProfile.java
+old mode 100755
+new mode 100644
+diff --git a/packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java b/packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java
+old mode 100755
+new mode 100644
+-- 
+2.11.0
+

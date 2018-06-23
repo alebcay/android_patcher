@@ -1,0 +1,38 @@
+From 02734c2963503dc415e47d6ada18c42581cdf948 Mon Sep 17 00:00:00 2001
+From: shoudil <stephenli@codeaurora.org>
+Date: Thu, 1 Feb 2018 14:16:40 +0800
+Subject: [PATCH 27/47] GLSurfaceView: report draw finished after first
+ onDrawFrame in GLThread
+
+At default, GLThread will not report draw finish after 1st
+onDrawFrame. This will cause long black screen issue for game
+whose 2nd onDrawFrame taking time, such as CandyCrash case
+reported by customer.
+This change ensure the draw finished to be reported after 1st
+onDrawFrame.
+
+CRs-Fixed: 2182359
+
+Change-Id: I8b817bdb5d6dcaec9835b45c6efe8e6892c716fe
+---
+ opengl/java/android/opengl/GLSurfaceView.java | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/opengl/java/android/opengl/GLSurfaceView.java b/opengl/java/android/opengl/GLSurfaceView.java
+index 0f0a7e9d131..e5a0c8ee70b 100644
+--- a/opengl/java/android/opengl/GLSurfaceView.java
++++ b/opengl/java/android/opengl/GLSurfaceView.java
+@@ -1568,6 +1568,10 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
+                         if (view != null) {
+                             try {
+                                 Trace.traceBegin(Trace.TRACE_TAG_VIEW, "onDrawFrame");
++                                if (mFinishDrawingRunnable != null) {
++                                    finishDrawingRunnable = mFinishDrawingRunnable;
++                                    mFinishDrawingRunnable = null;
++                                }
+                                 view.mRenderer.onDrawFrame(gl);
+                                 if (finishDrawingRunnable != null) {
+                                     finishDrawingRunnable.run();
+-- 
+2.11.0
+

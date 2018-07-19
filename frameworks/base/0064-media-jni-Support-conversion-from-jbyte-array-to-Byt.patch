@@ -1,0 +1,50 @@
+From 5b18ed5095e80a648d90f4882e15942c0ade69fe Mon Sep 17 00:00:00 2001
+From: Anubhav Phukan <anubhavp@codeaurora.org>
+Date: Mon, 30 Oct 2017 14:12:38 +0530
+Subject: [PATCH 64/64] media: jni: Support conversion from jbyte array to
+ ByteBuffer.
+
+Detect the bytarray in Bundle and copy the array into a byte
+buffer.
+
+Change-Id: I943f1c4d9d9c8a1a69040bb96d9412b229f74080
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+Signed-off-by: Simao Gomes Viana <xdevs23@outlook.com>
+---
+ media/jni/android_media_Utils.cpp | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/media/jni/android_media_Utils.cpp b/media/jni/android_media_Utils.cpp
+index 458d8471daf..b807359a87d 100644
+--- a/media/jni/android_media_Utils.cpp
++++ b/media/jni/android_media_Utils.cpp
+@@ -432,6 +432,8 @@ status_t ConvertKeyValueArraysToMessage(
+     CHECK(floatClass.get() != NULL);
+     ScopedLocalRef<jclass> byteBufClass(env, env->FindClass("java/nio/ByteBuffer"));
+     CHECK(byteBufClass.get() != NULL);
++    ScopedLocalRef<jclass> byteArrayClass(env, env->FindClass("[B"));
++    CHECK(byteArrayClass.get() != NULL);
+ 
+     sp<AMessage> msg = new AMessage;
+ 
+@@ -550,9 +552,16 @@ status_t ConvertKeyValueArraysToMessage(
+             }
+ 
+             msg->setBuffer(key.c_str(), buffer);
++        } else if (env->IsInstanceOf(valueObj, byteArrayClass.get())) {
++            jbyteArray* bArray = reinterpret_cast<jbyteArray*>(&valueObj);
++            jsize len = env->GetArrayLength(*bArray);
++            jbyte *body = env->GetByteArrayElements(*bArray, 0);
++            sp<ABuffer> buffer = new ABuffer(len*sizeof(jbyte));
++            memcpy(buffer->data(), body, buffer->size());
++            msg->setBuffer(key.c_str(), buffer);
++            env->ReleaseByteArrayElements(*bArray, body, 0);
+         }
+     }
+-
+     *out = msg;
+ 
+     return OK;
+-- 
+2.18.0
+

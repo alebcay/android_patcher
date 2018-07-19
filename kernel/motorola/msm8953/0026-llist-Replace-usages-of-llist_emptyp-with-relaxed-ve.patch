@@ -1,9 +1,10 @@
-From 85d8f173c66d2edadf71ec2a15c7c46617ee67a1 Mon Sep 17 00:00:00 2001
-From: Andrei F <luxneb@gmail.com>
-Date: Mon, 24 Aug 2015 02:59:31 +0200
-Subject: [PATCH 26/27] llist: Replace usages of llist_empty with relaxed
+From 1fb6eca4fa2377a14a47b0217a6f04e474e9e9cb Mon Sep 17 00:00:00 2001
+From: Caleb Xu <calebcenter@live.com>
+Date: Thu, 19 Jul 2018 13:27:43 +0000
+Subject: [PATCH 26/26] llist: Replace usages of llist_emptyp with relaxed
  version
 
+Change-Id: I38f7d591533ffc4fd6aca5a27b0ba0950c590dac
 ---
  kernel/irq_work.c   | 8 ++++----
  kernel/sched/core.c | 4 ++--
@@ -11,7 +12,7 @@ Subject: [PATCH 26/27] llist: Replace usages of llist_empty with relaxed
  3 files changed, 7 insertions(+), 7 deletions(-)
 
 diff --git a/kernel/irq_work.c b/kernel/irq_work.c
-index 3ab9048483f..2af5076a790 100644
+index 3ab9048483fa..2af5076a7908 100644
 --- a/kernel/irq_work.c
 +++ b/kernel/irq_work.c
 @@ -116,8 +116,8 @@ bool irq_work_needs_cpu(void)
@@ -44,19 +45,19 @@ index 3ab9048483f..2af5076a790 100644
  	irq_work_run_list(&__get_cpu_var(lazy_list));
  }
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index af80d51b00e..f38f13adefa 100644
+index cb6b035fc375..471eabddedb9 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -1906,7 +1906,7 @@ void scheduler_ipi(void)
+@@ -4917,7 +4917,7 @@ void scheduler_ipi(void)
  	 */
  	preempt_fold_need_resched();
  
--	if (llist_empty(&this_rq()->wake_list) && !got_nohz_idle_kick())
-+	if (llist_empty_relaxed(&this_rq()->wake_list) && !got_nohz_idle_kick())
+-	if (llist_empty(&this_rq()->wake_list) && !got_nohz_idle_kick() &&
++	if (llist_empty_relaxed(&this_rq()->wake_list) && !got_nohz_idle_kick() &&
+ 							!got_boost_kick())
  		return;
  
- 	/*
-@@ -3794,7 +3794,7 @@ int idle_cpu(int cpu)
+@@ -6794,7 +6794,7 @@ int idle_cpu(int cpu)
  		return 0;
  
  #ifdef CONFIG_SMP
@@ -66,7 +67,7 @@ index af80d51b00e..f38f13adefa 100644
  #endif
  
 diff --git a/net/rds/ib_rdma.c b/net/rds/ib_rdma.c
-index 657ba9f5d30..afeb3d65edc 100644
+index 657ba9f5d308..afeb3d65edcb 100644
 --- a/net/rds/ib_rdma.c
 +++ b/net/rds/ib_rdma.c
 @@ -593,7 +593,7 @@ static int rds_ib_flush_mr_pool(struct rds_ib_mr_pool *pool,
@@ -79,5 +80,5 @@ index 657ba9f5d30..afeb3d65edc 100644
  
  			ibmr = rds_ib_reuse_fmr(pool);
 -- 
-2.11.0
+2.18.0
 

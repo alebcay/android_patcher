@@ -1,20 +1,20 @@
-From d4a3db13bf429a8718ebf98d069ede644198e344 Mon Sep 17 00:00:00 2001
-From: Andrei F <luxneb@gmail.com>
-Date: Tue, 25 Aug 2015 15:29:10 +0200
-Subject: [PATCH 27/27] hrtimer: Replace usages of hrtimer_callback_running
- with relaxed version
+From e2b39c7211b3dd49068d086d3882ce169b9bb3df Mon Sep 17 00:00:00 2001
+From: franciscofranco <franciscofranco.1990@gmail.com>
+Date: Sat, 5 Dec 2015 02:38:02 +0000
+Subject: [PATCH 27/27] hrtimer: Replace usage of hrtimer_callback_running with
+ the new relaxed version for less power usage
 
-Change-Id: I04b255cf4dc2beaff0113fcd2a873a48bf3c44ad
+Signed-off-by: franciscofranco <franciscofranco.1990@gmail.com>
 ---
  kernel/sched/fair.c   | 2 +-
  kernel/time/hrtimer.c | 8 ++++----
  2 files changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
-index d45def3ee4f..95f9f49b1a8 100644
+index 79c013efd936..f5de4bdc26da 100644
 --- a/kernel/sched/fair.c
 +++ b/kernel/sched/fair.c
-@@ -4013,7 +4013,7 @@ static int runtime_refresh_within(struct cfs_bandwidth *cfs_b, u64 min_expire)
+@@ -5639,7 +5639,7 @@ static int runtime_refresh_within(struct cfs_bandwidth *cfs_b, u64 min_expire)
  	u64 remaining;
  
  	/* if the call-back is running a quota refresh is already occurring */
@@ -24,7 +24,7 @@ index d45def3ee4f..95f9f49b1a8 100644
  
  	/* is a quota refresh about to occur? */
 diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
-index 150d117a3aa..24d00be4a14 100644
+index 150d117a3aa9..24d00be4a14f 100644
 --- a/kernel/time/hrtimer.c
 +++ b/kernel/time/hrtimer.c
 @@ -217,7 +217,7 @@ again:
@@ -64,5 +64,5 @@ index 150d117a3aa..24d00be4a14 100644
  
  		/*
 -- 
-2.11.0
+2.14.1
 

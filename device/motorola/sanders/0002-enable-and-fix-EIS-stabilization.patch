@@ -1,0 +1,25 @@
+From cb64c7e987bdf80ad9719c0f4c5d7d7b5cb885a1 Mon Sep 17 00:00:00 2001
+From: Sebastian <kjjjnob.seba@gmail.com>
+Date: Wed, 30 May 2018 17:07:44 -0300
+Subject: [PATCH 2/2] enable and fix EIS stabilization
+
+help with stabilization on Camera from AOSP and GoogleCamera
+---
+ system.prop | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/system.prop b/system.prop
+index 3da2b0b6..f214cdf1 100644
+--- a/system.prop
++++ b/system.prop
+@@ -72,6 +72,7 @@ vendor.vidc.dec.downscalar_height=1088
+ vidc.dec.disable.split.cpu=1
+ video.disable.ubwc=1
+ vendor.camera.aux.packagelist=com.motorola.camera2,com.google.android.Pixel2Mod
++persist.camera.eis.enable=1
+ 
+ # CNE
+ persist.cne.feature=1
+-- 
+2.18.0
+

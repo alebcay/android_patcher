@@ -1,0 +1,26 @@
+From 3f989f39f11ad4a0919372b7138e37b9bb87398a Mon Sep 17 00:00:00 2001
+From: coldhans <joelhans@protonmail.com>
+Date: Sun, 6 May 2018 13:28:12 -0400
+Subject: [PATCH 5/5] sanders: Fix bluetooth calling
+
+* Lineage inverted the logic
+
+Signed-off-by: Henrique Silva <jhenrique09.mcz@hotmail.com>
+---
+ bluetooth/bdroid_buildcfg.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/bluetooth/bdroid_buildcfg.h b/bluetooth/bdroid_buildcfg.h
+index a6b2d1de..110b5a7a 100644
+--- a/bluetooth/bdroid_buildcfg.h
++++ b/bluetooth/bdroid_buildcfg.h
+@@ -28,5 +28,5 @@
+ #define BT_CLEAN_TURN_ON_DISABLED TRUE
+ #define BTM_WBS_INCLUDED TRUE
+ #define BTIF_HF_WBS_PREFERRED TRUE
+-#define BTM_SCO_ENHANCED_SYNC_DISABLED TRUE
++#define BTM_SCO_ENHANCED_SYNC_ENABLED FALSE
+ #endif
+-- 
+2.18.0
+

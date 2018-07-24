@@ -1,0 +1,42 @@
+From f3562a4a474079485b83da661a782c1bdb73f8a3 Mon Sep 17 00:00:00 2001
+From: Till Kottmann <deletescape@gmail.com>
+Date: Mon, 4 Jun 2018 17:44:56 +0200
+Subject: [PATCH 65/69] Cache pin algorithms in PinSet
+
+Change-Id: Ie9360a49373bd75b1d179df819c045ec7b4224b2
+Signed-off-by: Josh Fox (XlxFoXxlX) <joshfox87@gmail.com>
+---
+ core/java/android/security/net/config/PinSet.java | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/core/java/android/security/net/config/PinSet.java b/core/java/android/security/net/config/PinSet.java
+index d3c975eb310..87fcde943db 100644
+--- a/core/java/android/security/net/config/PinSet.java
++++ b/core/java/android/security/net/config/PinSet.java
+@@ -22,6 +22,7 @@ import java.util.Set;
+ 
+ /** @hide */
+ public final class PinSet {
++    private static Set<String> algorithms;
+     public static final PinSet EMPTY_PINSET =
+             new PinSet(Collections.<Pin>emptySet(), Long.MAX_VALUE);
+     public final long expirationTime;
+@@ -36,10 +37,11 @@ public final class PinSet {
+     }
+ 
+     Set<String> getPinAlgorithms() {
+-        // TODO: Cache this.
+-        Set<String> algorithms = new ArraySet<String>();
+-        for (Pin pin : pins) {
+-            algorithms.add(pin.digestAlgorithm);
++        if(algorithms == null){
++            algorithms = new ArraySet<String>();
++            for (Pin pin : pins) {
++                algorithms.add(pin.digestAlgorithm);
++            }
+         }
+         return algorithms;
+     }
+-- 
+2.18.0
+

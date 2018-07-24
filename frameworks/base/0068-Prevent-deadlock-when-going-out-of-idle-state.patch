@@ -1,0 +1,82 @@
+From d883085c8cef48f0aaacf3bf6083a76ce9dcdcee Mon Sep 17 00:00:00 2001
+From: Gabriele M <moto.falcon.git@gmail.com>
+Date: Wed, 13 Dec 2017 11:42:51 +0100
+Subject: [PATCH 68/69] Prevent deadlock when going out of idle state
+
+Don't call DeviceIdleController.onAnyMotionResult() with mLock locked
+to prevent the following deadlock (checkout at eb72a7f4579b61031b4cb6
+for exact line numbering).
+
+"android.bg" prio=5 tid=10 Blocked
+  | group="main" sCount=1 dsCount=0 obj=0x12c3c430 self=0xb4284900
+  | sysTid=731 nice=10 cgrp=default sched=0/0 handle=0x9fccb920
+  | state=S schedstat=( 0 0 0 ) utm=34028 stm=60512 core=0 HZ=100
+  | stack=0x9fbc9000-0x9fbcb000 stackSize=1038KB
+  | held mutexes=
+  at com.android.server.DeviceIdleController.onAnyMotionResult(DeviceIdleController.java:983)
+  - waiting to lock <0x048f0aaa> (a com.android.server.DeviceIdleController) held by thread 1
+  at com.android.server.AnyMotionDetector$3.run(AnyMotionDetector.java:342)
+  - locked <0x088ae995> (a java.lang.Object)
+  at android.os.Handler.handleCallback(Handler.java:751)
+  at android.os.Handler.dispatchMessage(Handler.java:95)
+  at android.os.Looper.loop(Looper.java:154)
+  at android.os.HandlerThread.run(HandlerThread.java:61)
+
+"main" prio=5 tid=1 Blocked
+  | group="main" sCount=1 dsCount=0 obj=0x75209670 self=0xb4284400
+  | sysTid=678 nice=-2 cgrp=default sched=0/0 handle=0xb6f56534
+  | state=S schedstat=( 0 0 0 ) utm=8072 stm=3218 core=0 HZ=100
+  | stack=0xbe4f0000-0xbe4f2000 stackSize=8MB
+  | held mutexes=
+  at com.android.server.AnyMotionDetector.stop(AnyMotionDetector.java:168)
+  - waiting to lock <0x088ae995> (a java.lang.Object) held by thread 10
+  at com.android.server.DeviceIdleController.resetIdleManagementLocked(DeviceIdleController.java:1866)
+  at com.android.server.DeviceIdleController.becomeInactiveIfAppropriateLocked(DeviceIdleController.java:1844)
+  at com.android.server.DeviceIdleController.handleMotionDetectedLocked(DeviceIdleController.java:2196)
+  at com.android.server.DeviceIdleController.motionLocked(DeviceIdleController.java:2170)
+  at com.android.server.DeviceIdleController$MotionListener.onTrigger(DeviceIdleController.java:426)
+  - locked <0x048f0aaa> (a com.android.server.DeviceIdleController)
+  at android.hardware.SystemSensorManager$TriggerEventQueue.dispatchSensorEvent(SystemSensorManager.java:801)
+  at android.os.MessageQueue.nativePollOnce(Native method)
+  at android.os.MessageQueue.next(MessageQueue.java:323)
+  at android.os.Looper.loop(Looper.java:136)
+  at com.android.server.SystemServer.run(SystemServer.java:383)
+  at com.android.server.SystemServer.main(SystemServer.java:237)
+  at java.lang.reflect.Method.invoke!(Native method)
+  at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:889)
+  at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:779)
+
+Change-Id: I4153a866bc627c98b0972e9764f7af43e988bd8e
+
+Signed-off-by: xyyx <xyyx@mail.ru>
+Signed-off-by: spezi77 <spezi7713@gmx.net>
+---
+ .../java/com/android/server/AnyMotionDetector.java     | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/services/core/java/com/android/server/AnyMotionDetector.java b/services/core/java/com/android/server/AnyMotionDetector.java
+index d5649252127..ec4696132eb 100644
+--- a/services/core/java/com/android/server/AnyMotionDetector.java
++++ b/services/core/java/com/android/server/AnyMotionDetector.java
+@@ -336,13 +336,13 @@ public class AnyMotionDetector {
+                           "data within " + ACCELEROMETER_DATA_TIMEOUT_MILLIS + " ms. Stopping " +
+                           "orientation measurement.");
+                     status = stopOrientationMeasurementLocked();
+-                    if (status != RESULT_UNKNOWN) {
+-                        mHandler.removeCallbacks(mWakelockTimeout);
+-                        mWakelockTimeoutIsActive = false;
+-                        mCallback.onAnyMotionResult(status);
+-                    }
+                 }
+             }
++            if (status != RESULT_UNKNOWN) {
++                mHandler.removeCallbacks(mWakelockTimeout);
++                mWakelockTimeoutIsActive = false;
++                mCallback.onAnyMotionResult(status);
++            }
+         }
+     };
+ 
+-- 
+2.18.0
+

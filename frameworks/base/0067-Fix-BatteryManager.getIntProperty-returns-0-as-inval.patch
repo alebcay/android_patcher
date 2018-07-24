@@ -1,0 +1,34 @@
+From 3990c18ca40991234cf80ef1c1603cf144a5d869 Mon Sep 17 00:00:00 2001
+From: Yifan Hong <elsk@google.com>
+Date: Mon, 9 Oct 2017 15:21:15 -0700
+Subject: [PATCH 67/69] Fix BatteryManager.getIntProperty returns 0 as invalid
+ value.
+
+Long.MIN_VALUE cast to Integer.MIN_VALUE always returns 0.
+
+Change-Id: Ief7a1fd12a356c83a4ef3f28139c330034507dfa
+Fixes: 37090343
+Test: pass
+Signed-off-by: mydongistiny <jaysonedson@gmail.com>
+Signed-off-by: Harsh Shandilya <harsh@prjkt.io>
+---
+ core/java/android/os/BatteryManager.java | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/core/java/android/os/BatteryManager.java b/core/java/android/os/BatteryManager.java
+index 2da42b404bd..87291046905 100644
+--- a/core/java/android/os/BatteryManager.java
++++ b/core/java/android/os/BatteryManager.java
+@@ -301,7 +301,8 @@ public class BatteryManager {
+      * @return the property value, or Integer.MIN_VALUE if not supported.
+      */
+     public int getIntProperty(int id) {
+-        return (int)queryProperty(id);
++        long val = queryProperty(id);
++        return val == Long.MIN_VALUE ? Integer.MIN_VALUE : (int)val;
+     }
+ 
+     /**
+-- 
+2.18.0
+

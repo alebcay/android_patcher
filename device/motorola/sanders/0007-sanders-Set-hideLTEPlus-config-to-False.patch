@@ -1,0 +1,26 @@
+From 69b7b6862e1ed28fe25dfeb98c72c2e7ef510649 Mon Sep 17 00:00:00 2001
+From: rajadeja <raj.jdja@gmail.com>
+Date: Thu, 19 Jul 2018 11:43:16 +0530
+Subject: [PATCH 7/7] sanders: Set hideLTEPlus config to False.
+
+Change-Id: I1d43bf60acee83b51d0de83366473a775a827bbf
+---
+ overlay/frameworks/base/packages/SystemUI/res/values/config.xml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/overlay/frameworks/base/packages/SystemUI/res/values/config.xml b/overlay/frameworks/base/packages/SystemUI/res/values/config.xml
+index bd5330ac..88da067b 100644
+--- a/overlay/frameworks/base/packages/SystemUI/res/values/config.xml
++++ b/overlay/frameworks/base/packages/SystemUI/res/values/config.xml
+@@ -25,7 +25,7 @@
+     <bool name="doze_display_state_supported">true</bool>
+ 
+     <!-- If true, will show a plus sing in front of LTE -->
+-    <bool name="config_hideLtePlus">true</bool>
++    <bool name="config_hideLtePlus">false</bool>
+ 
+ </resources>
+ 
+-- 
+2.18.0
+

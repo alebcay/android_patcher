@@ -1,7 +1,7 @@
-From 99212998d8a7660a7955c867f46f4abba2d4811a Mon Sep 17 00:00:00 2001
+From 815d28346d0f0953d4f33bca4371bf0f8917beae Mon Sep 17 00:00:00 2001
 From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
 Date: Tue, 6 Mar 2018 01:47:00 -0800
-Subject: [PATCH 20/23] aarch64: Improve strncmp for mutually misaligned inputs
+Subject: [PATCH 10/12] aarch64: Improve strncmp for mutually misaligned inputs
 
 The mutually misaligned inputs on aarch64 are compared with a simple
 byte copy, which is not very efficient.  Enhance the comparison
@@ -19,7 +19,7 @@ performance of aligned/mutually aligned inputs.
 
 Change-Id: I5b3716da40a6a6e561373c7ed8ec42ababe13c8c
 ---
- libc/arch-arm64/generic/bionic/strncmp.S | 97 +++++++++++++++++++++++++++-----
+ libc/arch-arm64/generic/bionic/strncmp.S | 97 ++++++++++++++++++++----
  1 file changed, 82 insertions(+), 15 deletions(-)
 
 diff --git a/libc/arch-arm64/generic/bionic/strncmp.S b/libc/arch-arm64/generic/bionic/strncmp.S
@@ -169,5 +169,5 @@ index 267f663ed..f8436bfd5 100644
 +
  END(strncmp)
 -- 
-2.11.0
+2.18.0
 

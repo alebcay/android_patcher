@@ -1,23 +1,23 @@
-From ad80799047c454b3758ac447d326ede73906f696 Mon Sep 17 00:00:00 2001
+From 39c906f015bc432100f350cb8a28ae8ddb3b0a80 Mon Sep 17 00:00:00 2001
 From: Jake Weinstein <xboxlover360@gmail.com>
 Date: Thu, 4 May 2017 02:43:44 -0400
-Subject: [PATCH 14/23] libc: add optimized ARM64 strrchr from newlib
+Subject: [PATCH 12/12] libc: add optimized ARM64 strrchr from newlib
 
 Test: make otapackage
 
 Change-Id: Ibdc6c43f323a3659699ec8c64b32abd48f659231
 ---
  libc/Android.bp                          |   2 +
- libc/NOTICE                              |  27 +++++
- libc/arch-arm64/generic/bionic/strrchr.S | 169 +++++++++++++++++++++++++++++++
+ libc/NOTICE                              |  27 ++++
+ libc/arch-arm64/generic/bionic/strrchr.S | 169 +++++++++++++++++++++++
  3 files changed, 198 insertions(+)
  create mode 100644 libc/arch-arm64/generic/bionic/strrchr.S
 
 diff --git a/libc/Android.bp b/libc/Android.bp
-index 6717095b9..39412f24b 100644
+index ac6e84e55..acc8a171c 100644
 --- a/libc/Android.bp
 +++ b/libc/Android.bp
-@@ -1095,6 +1095,7 @@ cc_library_static {
+@@ -1099,6 +1099,7 @@ cc_library_static {
                  "arch-arm64/generic/bionic/memset.S",
                  "arch-arm64/generic/bionic/stpcpy.S",
                  "arch-arm64/generic/bionic/strchr.S",
@@ -25,7 +25,7 @@ index 6717095b9..39412f24b 100644
                  "arch-arm64/generic/bionic/strcmp.S",
                  "arch-arm64/generic/bionic/strcpy.S",
                  "arch-arm64/generic/bionic/strlen.S",
-@@ -1112,6 +1113,7 @@ cc_library_static {
+@@ -1116,6 +1117,7 @@ cc_library_static {
                  "bionic/__memcpy_chk.cpp",
                  "bionic/strchr.cpp",
                  "bionic/strnlen.c",
@@ -34,7 +34,7 @@ index 6717095b9..39412f24b 100644
              denver64: {
                  srcs: [
 diff --git a/libc/NOTICE b/libc/NOTICE
-index 79b1a70eb..b6a4fa643 100644
+index 4c62d98e1..e481fac4a 100644
 --- a/libc/NOTICE
 +++ b/libc/NOTICE
 @@ -1,5 +1,32 @@
@@ -246,5 +246,5 @@ index 000000000..300e0b87c
 +
 +END(strrchr)
 -- 
-2.11.0
+2.18.0
 

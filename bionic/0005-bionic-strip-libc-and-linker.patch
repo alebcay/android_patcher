@@ -1,7 +1,7 @@
-From 161665faf3cbbf2a8f3e13ab8929ae043efe06cb Mon Sep 17 00:00:00 2001
+From 0a63074a7256ccaec0e635be8af8b6d5645b0549 Mon Sep 17 00:00:00 2001
 From: Park Ju Hyung <qkrwngud825@gmail.com>
 Date: Fri, 31 Mar 2017 12:06:57 +0900
-Subject: [PATCH 17/23] bionic: strip libc and linker
+Subject: [PATCH 05/12] bionic: strip libc and linker
 
 Change-Id: Id5fce60abc5aa11af16186a01f865b0e4ad76a6e
 Signed-off-by: Park Ju Hyung <qkrwngud825@gmail.com>
@@ -11,10 +11,10 @@ Signed-off-by: Park Ju Hyung <qkrwngud825@gmail.com>
  2 files changed, 12 deletions(-)
 
 diff --git a/libc/Android.bp b/libc/Android.bp
-index 17e7fa7c3..413f3cef8 100644
+index 98af43968..ac6e84e55 100644
 --- a/libc/Android.bp
 +++ b/libc/Android.bp
-@@ -1790,12 +1790,6 @@ cc_library {
+@@ -1800,12 +1800,6 @@ cc_library {
  
      required: ["tzdata"],
  
@@ -45,5 +45,5 @@ index d74fbd36d..113260b35 100644
      // looking up symbols in the linker by mistake.
      prefix_symbols: "__dl_",
 -- 
-2.11.0
+2.18.0
 

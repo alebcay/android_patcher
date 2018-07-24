@@ -1,13 +1,13 @@
-From a1eb5f4b3f0f881524177e68c0406eebecb04130 Mon Sep 17 00:00:00 2001
+From 39c1c52897b2f259e8feaa4a0edeca5f2cc58a0b Mon Sep 17 00:00:00 2001
 From: Anton Kirilov <anton.kirilov@linaro.org>
 Date: Fri, 11 Aug 2017 15:00:19 +0100
-Subject: [PATCH 12/23] Optimize the clone() system call on ARM(64).
+Subject: [PATCH 06/12] Optimize the clone() system call on ARM(64).
 
 The kernel preserves all register values except R0/X0 and SP,
 so there is no need to push arguments on the stack.
 
 Test: bionic unit tests on device
-Change-Id: I027c2f166e937fbd4448c62c0a0c706ba049e02e
+Change-Id: Id4682e876d4ad246fa0bf28a10639375042a9f8c
 ---
  libc/arch-arm/bionic/__bionic_clone.S   | 8 +++-----
  libc/arch-arm64/bionic/__bionic_clone.S | 8 +++-----
@@ -64,5 +64,5 @@ index c3ff0e50c..9224e8435 100644
      b       __start_thread
  END(__bionic_clone)
 -- 
-2.11.0
+2.18.0
 

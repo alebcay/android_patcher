@@ -1,7 +1,8 @@
-From 5e787c39286e1e4b9f82b84d1f41a16e99806d35 Mon Sep 17 00:00:00 2001
+From 6c0f6bf0b5a98f7c68345328c308de6489b56c77 Mon Sep 17 00:00:00 2001
 From: Siddhesh Poyarekar <siddhesh.poyarekar@linaro.org>
 Date: Tue, 13 Mar 2018 14:48:33 +0000
-Subject: [PATCH 19/23] strcmp.S: Improve performance for misaligned strings
+Subject: [PATCH 09/12] [AArch64]strcmp.S: Improve performance for misaligned
+ strings
 
 Replace the simple byte-wise compare in the misaligned case with a
 dword compare with page boundary checks in place.  For simplicity I've
@@ -14,7 +15,7 @@ bench-strcmp in glibc.
 
 Change-Id: I0a8513e3d21a0f15fea51635a8e1abc7537812bf
 ---
- libc/arch-arm64/generic/bionic/strcmp.S | 51 ++++++++++++++++++++++++++-------
+ libc/arch-arm64/generic/bionic/strcmp.S | 51 +++++++++++++++++++------
  1 file changed, 40 insertions(+), 11 deletions(-)
 
 diff --git a/libc/arch-arm64/generic/bionic/strcmp.S b/libc/arch-arm64/generic/bionic/strcmp.S
@@ -123,5 +124,5 @@ index 271452dd1..b85d27d72 100644
  	ret
  END(strcmp)
 -- 
-2.11.0
+2.18.0
 

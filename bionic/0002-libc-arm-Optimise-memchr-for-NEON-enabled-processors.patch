@@ -1,7 +1,7 @@
-From 304ab6fc004232beb8b4fbbb724c53457a8dab94 Mon Sep 17 00:00:00 2001
+From 7a71213046c6a7c3b740e63474a9711666436f17 Mon Sep 17 00:00:00 2001
 From: Prakhar Bahuguna <prakhar.bahuguna@arm.com>
 Date: Mon, 10 Apr 2017 00:41:23 +0200
-Subject: [PATCH 22/23] libc: arm: Optimise memchr for NEON-enabled processors
+Subject: [PATCH 02/12] libc: arm: Optimise memchr for NEON-enabled processors
 
 This optimization is extracted from cortex-strings and bionic-ized,
 and applied to arm-v7a cpus (a7, a9, a15, a53, denver, krait, kryo).
@@ -15,12 +15,12 @@ Change-Id: I1c3fb0c89ce2b3ee7e44f492367b6caf6db58ccf
 Signed-off-by: Yingshiuan Pan <yingshiuan.pan@linaro.org>
 ---
  libc/Android.bp                       |   2 +
- libc/arch-arm/generic/bionic/memchr.S | 201 ++++++++++++++++++++++++++++++++++
+ libc/arch-arm/generic/bionic/memchr.S | 201 ++++++++++++++++++++++++++
  2 files changed, 203 insertions(+)
  create mode 100644 libc/arch-arm/generic/bionic/memchr.S
 
 diff --git a/libc/Android.bp b/libc/Android.bp
-index 413f3cef8..ef0126ffd 100644
+index 96620092a..e39ab8289 100644
 --- a/libc/Android.bp
 +++ b/libc/Android.bp
 @@ -576,6 +576,7 @@ cc_library_static {
@@ -247,5 +247,5 @@ index 000000000..5a78da280
 +
 +END(memchr)
 -- 
-2.11.0
+2.18.0
 

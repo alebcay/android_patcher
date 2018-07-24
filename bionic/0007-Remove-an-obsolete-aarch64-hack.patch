@@ -1,14 +1,14 @@
-From 641c44fb4c5d69a2c105825b375ffe8b664530ae Mon Sep 17 00:00:00 2001
+From df201504c499cd366a8b3f58f5f8fa06aff98fb0 Mon Sep 17 00:00:00 2001
 From: Elliott Hughes <enh@google.com>
 Date: Tue, 24 Oct 2017 14:23:47 -0700
-Subject: [PATCH 13/23] Remove an obsolete aarch64 hack.
+Subject: [PATCH 07/12] Remove an obsolete aarch64 hack.
 
 e210488e0d4082b9a0c55195c22191f29ed56bf8 in 2013 added this, which seems
 to have been a workaround for the linker at the time that was never removed.
 
 Bug: N/A
 Test: ran tests
-Change-Id: I171c3f4b7c34638ab75b8e49616b3a9c24ab3fcb
+Change-Id: If81e14f352c70ed491516d9695b41ddb91646fd2
 ---
  libc/arch-common/bionic/__dso_handle.h    | 9 ++-------
  libc/arch-common/bionic/__dso_handle_so.h | 9 +--------
@@ -50,5 +50,5 @@ index fab328a1c..e2c26b63b 100644
 -#endif
 +__attribute__((__visibility__("hidden"))) void* __dso_handle = &__dso_handle;
 -- 
-2.11.0
+2.18.0
 

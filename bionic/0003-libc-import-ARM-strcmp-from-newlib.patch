@@ -1,7 +1,7 @@
-From f860380dbf23b75641408725654b54c65730e6df Mon Sep 17 00:00:00 2001
+From 4de4864eb4777e3bfc2ab3ef1e8e2274a46f57db Mon Sep 17 00:00:00 2001
 From: Jake Weinstein <xboxlover360@gmail.com>
 Date: Sat, 6 May 2017 23:22:58 -0400
-Subject: [PATCH 15/23] libc: import ARM strcmp from newlib
+Subject: [PATCH 03/12] libc: import ARM strcmp from newlib
 
 * Current version is also based on newlib, but an older revision
 
@@ -11,91 +11,134 @@ Subject: [PATCH 15/23] libc: import ARM strcmp from newlib
 Tested on OnePlus 3 (MSM8996):
 
 Before (Krait strcmp):
-                                       iterations      ns/op
-BM_string_strcmp/8                          1000k         24    0.322 GiB/s
-BM_string_strcmp/64                           20M        123    0.519 GiB/s
-BM_string_strcmp/512                           2M        920    0.556 GiB/s
-BM_string_strcmp/1024                       1000k       1818    0.563 GiB/s
-BM_string_strcmp/8Ki                         200k      14405    0.569 GiB/s
-BM_string_strcmp/16Ki                        100k      28762    0.570 GiB/s
-BM_string_strcmp/32Ki                         50k      57526    0.570 GiB/s
-BM_string_strcmp/64Ki                         10k     114959    0.570 GiB/s
+
+BM_string_strcmp/8/0/0             19 ns         19 ns   37402019   408.748MB/s
+BM_string_strcmp/64/0/0           118 ns        117 ns    6004251    523.48MB/s
+BM_string_strcmp/512/0/0          923 ns        913 ns     766376   534.988MB/s
+BM_string_strcmp/1024/0/0        1822 ns       1809 ns     386716   539.959MB/s
+BM_string_strcmp/8192/0/0       14508 ns      14373 ns      48663   543.571MB/s
+BM_string_strcmp/16384/0/0      29151 ns      28807 ns      24419   542.399MB/s
+BM_string_strcmp/32768/0/0      57886 ns      57346 ns      12196    544.94MB/s
+BM_string_strcmp/65536/0/0     115897 ns     114907 ns       6096   543.917MB/s
 
 After:
-                                       iterations      ns/op
-BM_string_strcmp/8                          1000k         28    0.284 GiB/s
-BM_string_strcmp/64                           20M        107    0.596 GiB/s
-BM_string_strcmp/512                           2M        800    0.639 GiB/s
-BM_string_strcmp/1024                       1000k       1579    0.649 GiB/s
-BM_string_strcmp/8Ki                         200k      12469    0.657 GiB/s
-BM_string_strcmp/16Ki                        100k      24931    0.657 GiB/s
-BM_string_strcmp/32Ki                         50k      49843    0.657 GiB/s
-BM_string_strcmp/64Ki                         20k      99635    0.658 GiB/s
 
-Test: bionic-benchmarks BM_string_memcmp
+BM_string_strcmp/8/0/0             17 ns         17 ns   41646086   452.393MB/s
+BM_string_strcmp/64/0/0           104 ns        102 ns    6885937   599.756MB/s
+BM_string_strcmp/512/0/0          806 ns        793 ns     882787   615.469MB/s
+BM_string_strcmp/1024/0/0        1618 ns       1570 ns     445039   622.071MB/s
+BM_string_strcmp/8192/0/0       12686 ns      12461 ns      56351   626.961MB/s
+BM_string_strcmp/16384/0/0      25166 ns      24871 ns      28149   628.244MB/s
+BM_string_strcmp/32768/0/0      50585 ns      49719 ns      14076   628.528MB/s
+BM_string_strcmp/65536/0/0     101152 ns      99398 ns       7042   628.785MB/s
+-------------------------------------------------------------------------------
+
+Angler (MSM8994)
+
+Before:
+
+BM_string_strcmp/8/0/0             12 ns         12 ns   47742753   648.546MB/s
+BM_string_strcmp/64/0/0            37 ns         37 ns   19001691   1.61783GB/s
+BM_string_strcmp/512/0/0          250 ns        249 ns    2814884   1.91808GB/s
+BM_string_strcmp/1024/0/0         480 ns        478 ns    1465157   1.99541GB/s
+BM_string_strcmp/8192/0/0        3751 ns       3737 ns     187292   2.04134GB/s
+BM_string_strcmp/16384/0/0       7547 ns       7517 ns      93103   2.02993GB/s
+BM_string_strcmp/32768/0/0      15229 ns      15172 ns      46149   2.01144GB/s
+BM_string_strcmp/65536/0/0      30570 ns      30468 ns      22977   2.00328GB/s
+
+After:
+
+BM_string_strcmp/8/0/0             10 ns         10 ns   51239682   733.135MB/s
+BM_string_strcmp/64/0/0            24 ns         24 ns   29754631    2.5337GB/s
+BM_string_strcmp/512/0/0          142 ns        142 ns    4941480   3.36352GB/s
+BM_string_strcmp/1024/0/0         266 ns        265 ns    2643802    3.6042GB/s
+BM_string_strcmp/8192/0/0        1991 ns       1983 ns     352919   3.84689GB/s
+BM_string_strcmp/16384/0/0       4306 ns       4288 ns     163326   3.55846GB/s
+BM_string_strcmp/32768/0/0       8720 ns       8664 ns      83168   3.52226GB/s
+BM_string_strcmp/65536/0/0      17869 ns      17740 ns      39599   3.44049GB/s
+-------------------------------------------------------------------------------
+
+Razer Phone (MSM8998)
+
+Before:
+BM_string_strcmp/8/0/0             13 ns         13 ns   55460779   604.384MB/s
+BM_string_strcmp/64/0/0            41 ns         41 ns   16936958   1.44224GB/s
+BM_string_strcmp/512/0/0          284 ns        283 ns    2477259   1.68406GB/s
+BM_string_strcmp/1024/0/0         552 ns        550 ns    1273757   1.73508GB/s
+BM_string_strcmp/8192/0/0        4305 ns       4288 ns     163251   1.77939GB/s
+BM_string_strcmp/16384/0/0       8594 ns       8559 ns      81778   1.78279GB/s
+BM_string_strcmp/32768/0/0      17209 ns      17136 ns      40847   1.78087GB/s
+BM_string_strcmp/65536/0/0      34378 ns      34233 ns      20446   1.78295GB/s
+
+After:
+
+BM_string_strcmp/8/0/0             10 ns         10 ns   68578534   749.059MB/s
+BM_string_strcmp/64/0/0            25 ns         25 ns   27724700   2.36067GB/s
+BM_string_strcmp/512/0/0          157 ns        156 ns    4444616   3.04989GB/s
+BM_string_strcmp/1024/0/0         290 ns        288 ns    2427790   3.30775GB/s
+BM_string_strcmp/8192/0/0        2233 ns       2223 ns     316021   3.43152GB/s
+BM_string_strcmp/16384/0/0       4413 ns       4394 ns     159298   3.47247GB/s
+BM_string_strcmp/32768/0/0       8999 ns       8958 ns      78067   3.40666GB/s
+BM_string_strcmp/65536/0/0      18473 ns      18390 ns      38148     3.319GB/s
+
+Test: bionic-benchmarks BM_string_strcmp
 Change-Id: Icb3bfb0a381bcc1e10885ca5e9547842c3f620d7
+Signed-off-by: Lennart <lennart.1997@gmx.de>
 ---
- libc/Android.bp                          |   6 +-
- libc/NOTICE                              |  28 ++
- libc/arch-arm/cortex-a15/bionic/strcmp.S | 711 ++++++++++++++++---------------
- libc/arch-arm/cortex-a9/bionic/strcmp.S  | 547 ------------------------
- libc/arch-arm/krait/bionic/strcmp.S      | 485 ---------------------
- 5 files changed, 406 insertions(+), 1371 deletions(-)
+ libc/Android.bp                          |   8 +-
+ libc/NOTICE                              |  28 +
+ libc/arch-arm/cortex-a15/bionic/strcmp.S | 711 ++++++++++++-----------
+ libc/arch-arm/cortex-a9/bionic/strcmp.S  | 547 -----------------
+ libc/arch-arm/krait/bionic/strcmp.S      | 485 ----------------
+ 5 files changed, 407 insertions(+), 1372 deletions(-)
  delete mode 100644 libc/arch-arm/cortex-a9/bionic/strcmp.S
  delete mode 100644 libc/arch-arm/krait/bionic/strcmp.S
 
 diff --git a/libc/Android.bp b/libc/Android.bp
-index 39412f24b..17e7fa7c3 100644
+index e39ab8289..a45355584 100644
 --- a/libc/Android.bp
 +++ b/libc/Android.bp
-@@ -941,11 +941,11 @@ cc_library_static {
+@@ -943,7 +943,7 @@ cc_library_static {
                      "arch-arm/cortex-a9/bionic/stpcpy.S",
                      "arch-arm/cortex-a9/bionic/strcat.S",
                      "arch-arm/cortex-a9/bionic/__strcat_chk.S",
 -                    "arch-arm/cortex-a9/bionic/strcmp.S",
++                    "arch-arm/cortex-a15/bionic/strcmp.S",
                      "arch-arm/cortex-a9/bionic/strcpy.S",
                      "arch-arm/cortex-a9/bionic/__strcpy_chk.S",
                      "arch-arm/cortex-a9/bionic/strlen.S",
+@@ -993,7 +993,7 @@ cc_library_static {
+                     "arch-arm/denver/bionic/__strcat_chk.S",
+                     "arch-arm/denver/bionic/__strcpy_chk.S",
  
+-                    "arch-arm/krait/bionic/strcmp.S",
 +                    "arch-arm/cortex-a15/bionic/strcmp.S",
-                     "arch-arm/denver/bionic/memmove.S",
-                 ],
-                 exclude_srcs: [
-@@ -1037,13 +1037,13 @@ cc_library_static {
+ 
+                     "arch-arm/cortex-a15/bionic/stpcpy.S",
+                     "arch-arm/cortex-a15/bionic/strcat.S",
+@@ -1039,7 +1039,7 @@ cc_library_static {
                  srcs: [
                      "arch-arm/krait/bionic/memcpy.S",
                      "arch-arm/krait/bionic/memset.S",
 -                    "arch-arm/krait/bionic/strcmp.S",
++                    "arch-arm/cortex-a15/bionic/strcmp.S",
                      "arch-arm/krait/bionic/__strcat_chk.S",
                      "arch-arm/krait/bionic/__strcpy_chk.S",
  
-                     // Use cortex-a15 versions of strcat/strcpy/strlen.
-                     "arch-arm/cortex-a15/bionic/stpcpy.S",
-                     "arch-arm/cortex-a15/bionic/strcat.S",
-+                    "arch-arm/cortex-a15/bionic/strcmp.S",
-                     "arch-arm/cortex-a15/bionic/strcpy.S",
-                     "arch-arm/cortex-a15/bionic/strlen.S",
- 
-@@ -1063,13 +1063,13 @@ cc_library_static {
+@@ -1065,7 +1065,7 @@ cc_library_static {
                  srcs: [
                      "arch-arm/kryo/bionic/memcpy.S",
                      "arch-arm/cortex-a7/bionic/memset.S",
 -                    "arch-arm/krait/bionic/strcmp.S",
++                    "arch-arm/cortex-a15/bionic/strcmp.S",
                      "arch-arm/krait/bionic/__strcat_chk.S",
                      "arch-arm/krait/bionic/__strcpy_chk.S",
  
-                     // Use cortex-a15 versions of strcat/strcpy/strlen.
-                     "arch-arm/cortex-a15/bionic/stpcpy.S",
-                     "arch-arm/cortex-a15/bionic/strcat.S",
-+                    "arch-arm/cortex-a15/bionic/strcmp.S",
-                     "arch-arm/cortex-a15/bionic/strcpy.S",
-                     "arch-arm/cortex-a15/bionic/strlen.S",
- 
 diff --git a/libc/NOTICE b/libc/NOTICE
-index b6a4fa643..e481fac4a 100644
+index 79b1a70eb..4c62d98e1 100644
 --- a/libc/NOTICE
 +++ b/libc/NOTICE
-@@ -5341,6 +5341,34 @@ Copyright (c) 2012-2013, Linaro Limited
+@@ -5314,6 +5314,34 @@ Copyright (c) 2012-2013, Linaro Limited
  
  -------------------------------------------------------------------
  
@@ -1913,5 +1956,5 @@ index b871c7622..000000000
 -	bx	lr
 -END(strcmp)
 -- 
-2.11.0
+2.18.0
 

@@ -1,0 +1,44 @@
+From 3c80b3179fa39c27afe36083fffde52b28d8ee2a Mon Sep 17 00:00:00 2001
+From: Anssi Hannula <anssi.hannula@bitwise.fi>
+Date: Tue, 7 Feb 2017 13:23:04 +0200
+Subject: [PATCH 80/85] can: xilinx_can: fix device dropping off bus on RX
+ overrun
+
+commit 2574fe54515ed3487405de329e4e9f13d7098c10 upstream.
+
+The xilinx_can driver performs a software reset when an RX overrun is
+detected. This causes the device to enter Configuration mode where no
+messages are received or transmitted.
+
+The documentation does not mention any need to perform a reset on an RX
+overrun, and testing by inducing an RX overflow also indicated that the
+device continues to work just fine without a reset.
+
+Remove the software reset.
+
+Tested with the integrated CAN on Zynq-7000 SoC.
+
+Fixes: b1201e44f50b ("can: xilinx CAN controller support")
+Signed-off-by: Anssi Hannula <anssi.hannula@bitwise.fi>
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Marc Kleine-Budde <mkl@pengutronix.de>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/net/can/xilinx_can.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/net/can/xilinx_can.c b/drivers/net/can/xilinx_can.c
+index 09b954d2a655..c88fb37a9b04 100644
+--- a/drivers/net/can/xilinx_can.c
++++ b/drivers/net/can/xilinx_can.c
+@@ -598,7 +598,6 @@ static void xcan_err_interrupt(struct net_device *ndev, u32 isr)
+ 	if (isr & XCAN_IXR_RXOFLW_MASK) {
+ 		stats->rx_over_errors++;
+ 		stats->rx_errors++;
+-		priv->write_reg(priv, XCAN_SRR_OFFSET, XCAN_SRR_RESET_MASK);
+ 		if (skb) {
+ 			cf->can_id |= CAN_ERR_CRTL;
+ 			cf->data[1] |= CAN_ERR_CRTL_RX_OVERFLOW;
+-- 
+2.18.0
+

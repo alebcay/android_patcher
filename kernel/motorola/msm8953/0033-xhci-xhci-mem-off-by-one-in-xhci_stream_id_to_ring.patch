@@ -1,0 +1,34 @@
+From 7ad62d54054f4e85ef60ab605cf5e2398b7d1c5f Mon Sep 17 00:00:00 2001
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Wed, 4 Jul 2018 12:48:53 +0300
+Subject: [PATCH 33/85] xhci: xhci-mem: off by one in xhci_stream_id_to_ring()
+
+commit 313db3d6488bb03b61b99de9dbca061f1fd838e1 upstream.
+
+The > should be >= here so that we don't read one element beyond the end
+of the ep->stream_info->stream_rings[] array.
+
+Fixes: e9df17eb1408 ("USB: xhci: Correct assumptions about number of rings per endpoint.")
+Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+Cc: stable <stable@vger.kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/usb/host/xhci-mem.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/usb/host/xhci-mem.c b/drivers/usb/host/xhci-mem.c
+index 2973e5dbb8a2..377324147278 100644
+--- a/drivers/usb/host/xhci-mem.c
++++ b/drivers/usb/host/xhci-mem.c
+@@ -638,7 +638,7 @@ struct xhci_ring *xhci_stream_id_to_ring(
+ 	if (!ep->stream_info)
+ 		return NULL;
+ 
+-	if (stream_id > ep->stream_info->num_streams)
++	if (stream_id >= ep->stream_info->num_streams)
+ 		return NULL;
+ 	return ep->stream_info->stream_rings[stream_id];
+ }
+-- 
+2.18.0
+

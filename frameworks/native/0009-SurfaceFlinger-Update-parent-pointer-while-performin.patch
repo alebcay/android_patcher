@@ -1,0 +1,88 @@
+From f73ce1cf9521053e1b70a4442dbc4a6fcb3192d0 Mon Sep 17 00:00:00 2001
+From: Robert Carr <racarr@google.com>
+Date: Thu, 1 Jun 2017 14:59:25 -0700
+Subject: [PATCH 9/9] SurfaceFlinger: Update parent pointer while performing
+ transaction.
+
+To understand the change at a high level, notice that all the usage
+of getParent() is assosciated with the drawing state. We see in this way
+that the parent is a part of the drawing state and should only be updated
+when transactions occurs.
+
+More specifically we can consider the following scenario:
+
+1. Imagine that we have a visible surface, with a visible child surface
+2. Now imagine we create a new surface, which is hidden, and post a buffer to it.
+   It is configured such that it would be visible if it were not hidden.
+3. We open a transaction
+4. We reparent the child from the old surface to the new one
+5. We show the new surface
+6. We close the transaction
+
+At this point we would expect the child to remain visible, as it is atomically
+reparented with the visibility change of the parent. However prior to this CL
+we see a flash, as the sequence can continue as follows:
+
+7. Closing the transaction triggers setClientState, causing Layer::reparentChildren
+   which would call setParent updating the parent pointer.
+8. setClientState updates the current but not drawing visibility of the new parent and marks
+   a transaction to occur.
+9. We return to the main thread, MESSAGE_REFRESH occurs before MESSAGE_TRANSACTION
+   and we render a frame
+10. We observe the child window as invisible, as it has the new parent
+    but it's new parent is not yet visible.
+
+We simply have to ensure the parent pointer is updated at transaction time.
+I chose a location in commitChildList where mDrawingChildren was copied
+from mCurrentChildren as it seemed to express the intent well.
+
+Test: Difficult to automatically test. Manually try resizing Chrome/Youtube/etc in docked stack before flicker should be ~1/10 after flicker should be <1/100 (I haven't seen one yet)
+Bug: 62099658
+Change-Id: I3721d16361b53128146510d3fda43e1c12f93223
+---
+ services/surfaceflinger/Layer.cpp | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
+index 038ece2e0..05da84efb 100755
+--- a/services/surfaceflinger/Layer.cpp
++++ b/services/surfaceflinger/Layer.cpp
+@@ -2630,7 +2630,25 @@ bool Layer::reparentChildren(const sp<IBinder>& newParentHandle) {
+     }
+ 
+     for (const sp<Layer>& child : mCurrentChildren) {
+-        newParent->addChild(child);
++        // We don't call addChild as we need to delay updating the child's parent pointer until
++        // a transaction occurs. Remember a refresh could occur in between now and the next
++        // transaction, in which case the Layer's parent pointer would be updated, but changes
++        // made to the parent in the same transaction would not have applied.
++        // This means that the following kind of scenario wont work:
++        //
++        // 1. Existing and visible child and parent surface exist
++        // 2. Create new surface hidden
++        // 3. Open transaction
++        // 4. Show the new surface, and reparent the old surface's children to it.
++        // 5. Close transaction.
++        //
++        // If we were to update the parent pointer immediately, then the child surface
++        // could disappear for one frame as it pointed at the new parent which
++        // hasn't yet become visible as the transaction hasn't yet occurred.
++        //
++        // Instead we defer the reparenting to commitChildList which happens as part
++        // of the global transaction.
++        newParent->mCurrentChildren.add(child);
+ 
+         sp<Client> client(child->mClientRef.promote());
+         if (client != nullptr) {
+@@ -2800,6 +2818,8 @@ uint8_t Layer::getAlpha() const {
+ void Layer::commitChildList() {
+     for (size_t i = 0; i < mCurrentChildren.size(); i++) {
+         const auto& child = mCurrentChildren[i];
++        child->setParent(this);
++
+         child->commitChildList();
+     }
+     mDrawingChildren = mCurrentChildren;
+-- 
+2.18.0
+

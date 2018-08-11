@@ -1,0 +1,24 @@
+From 198a26e3c0db3ef60c36281fdc42e22f2d1acef3 Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Date: Thu, 9 Aug 2018 12:20:36 +0200
+Subject: [PATCH 170/170] Linux 3.18.118
+
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 124d82f241f9..c2df4f018f4b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,6 @@
+ VERSION = 3
+ PATCHLEVEL = 18
+-SUBLEVEL = 117
++SUBLEVEL = 118
+ EXTRAVERSION =
+ NAME = Shuffling Zombie Juror
+ 
+-- 
+2.18.0
+

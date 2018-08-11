@@ -1,0 +1,33 @@
+From 5895c541acd1fa66b4c146b56e3e3c3dde33f78e Mon Sep 17 00:00:00 2001
+From: Francisco Franco <franciscofranco.1990@gmail.com>
+Date: Tue, 1 Nov 2016 07:01:20 +0000
+Subject: [PATCH 173/176] drivers: thermal: queue work on
+ system_power_efficient_wq
+
+There doesn't seem to be any real dependency of scheduling these on
+the cpu which scheduled them, so moving every *_delayed to the
+power efficient wq save potential needlessly idle cpu wake ups
+leaving the scheduler to decide the most appropriate cpus to wake up.
+
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ drivers/thermal/msm_thermal.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/thermal/msm_thermal.c b/drivers/thermal/msm_thermal.c
+index 009e42cffab0..4d53ea02b359 100644
+--- a/drivers/thermal/msm_thermal.c
++++ b/drivers/thermal/msm_thermal.c
+@@ -2955,7 +2955,8 @@ static int __ref update_offline_cores(int val)
+ 
+ 	if (pend_hotplug_req && !in_suspend && !retry_in_progress) {
+ 		retry_in_progress = true;
+-		schedule_delayed_work(&retry_hotplug_work,
++		queue_delayed_work(system_power_efficient_wq,
++			&retry_hotplug_work,
+ 			msecs_to_jiffies(HOTPLUG_RETRY_INTERVAL_MS));
+ 	}
+ 
+-- 
+2.18.0
+

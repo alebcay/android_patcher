@@ -1,0 +1,47 @@
+From ca2d08781adf10ac65ffb53e25a7950ff46d7c9b Mon Sep 17 00:00:00 2001
+From: Francisco Franco <franciscofranco.1990@gmail.com>
+Date: Mon, 16 Apr 2018 02:30:31 +0000
+Subject: [PATCH 176/176] msm: mdss: convert threads to interruptible
+
+These are FIFO so regardless they'll be given as much CPU as they really
+need for how long as it wants, so keeping these uninterruptible seem
+pretty stupid to me and only add up to the system loadavg.
+
+Nothing seems affected by this change, but I'll keep testing.
+
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ drivers/video/msm/mdss/mdss_dsi_host.c | 3 ++-
+ drivers/video/msm/mdss/mdss_fb.c       | 2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/msm/mdss/mdss_dsi_host.c b/drivers/video/msm/mdss/mdss_dsi_host.c
+index 614a905e942b..330c4a17e46e 100644
+--- a/drivers/video/msm/mdss/mdss_dsi_host.c
++++ b/drivers/video/msm/mdss/mdss_dsi_host.c
+@@ -2850,7 +2850,8 @@ static int dsi_event_thread(void *data)
+ 	spin_lock_init(&ev->event_lock);
+ 
+ 	while (1) {
+-		wait_event(ev->event_q, (ev->event_pndx != ev->event_gndx));
++		wait_event_interruptible(ev->event_q,
++			(ev->event_pndx != ev->event_gndx));
+ 		spin_lock_irqsave(&ev->event_lock, flag);
+ 		evq = &ev->todo_list[ev->event_gndx++];
+ 		todo = evq->todo;
+diff --git a/drivers/video/msm/mdss/mdss_fb.c b/drivers/video/msm/mdss/mdss_fb.c
+index d6d27a84e683..17d09af47b96 100644
+--- a/drivers/video/msm/mdss/mdss_fb.c
++++ b/drivers/video/msm/mdss/mdss_fb.c
+@@ -3906,7 +3906,7 @@ static int __mdss_fb_display_thread(void *data)
+ 				mfd->index);
+ 
+ 	while (1) {
+-		wait_event(mfd->commit_wait_q,
++		wait_event_interruptible(mfd->commit_wait_q,
+ 				(atomic_read(&mfd->commits_pending) ||
+ 				 kthread_should_stop()));
+ 
+-- 
+2.18.0
+

@@ -1,0 +1,45 @@
+From 5c179542c29ffc19be3a34392cd0f2a1fcb1d88c Mon Sep 17 00:00:00 2001
+From: Alex Vesker <valex@mellanox.com>
+Date: Fri, 25 May 2018 20:25:59 +0300
+Subject: [PATCH 46/85] net/mlx5: Fix incorrect raw command length parsing
+
+[ Upstream commit 603b7bcff824740500ddfa001d7a7168b0b38542 ]
+
+The NULL character was not set correctly for the string containing
+the command length, this caused failures reading the output of the
+command due to a random length. The fix is to initialize the output
+length string.
+
+Fixes: e126ba97dba9 ("mlx5: Add driver for Mellanox Connect-IB adapters")
+Signed-off-by: Alex Vesker <valex@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/net/ethernet/mellanox/mlx5/core/cmd.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/net/ethernet/mellanox/mlx5/core/cmd.c b/drivers/net/ethernet/mellanox/mlx5/core/cmd.c
+index 7eff69fb62ea..bc3dddb91979 100644
+--- a/drivers/net/ethernet/mellanox/mlx5/core/cmd.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/cmd.c
+@@ -933,7 +933,7 @@ static ssize_t outlen_write(struct file *filp, const char __user *buf,
+ {
+ 	struct mlx5_core_dev *dev = filp->private_data;
+ 	struct mlx5_cmd_debug *dbg = &dev->cmd.dbg;
+-	char outlen_str[8];
++	char outlen_str[8] = {0};
+ 	int outlen;
+ 	void *ptr;
+ 	int err;
+@@ -948,8 +948,6 @@ static ssize_t outlen_write(struct file *filp, const char __user *buf,
+ 	if (copy_from_user(outlen_str, buf, count))
+ 		return -EFAULT;
+ 
+-	outlen_str[7] = 0;
+-
+ 	err = sscanf(outlen_str, "%d", &outlen);
+ 	if (err < 0)
+ 		return err;
+-- 
+2.18.0
+

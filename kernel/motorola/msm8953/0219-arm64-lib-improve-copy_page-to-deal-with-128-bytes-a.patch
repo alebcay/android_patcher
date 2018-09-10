@@ -1,0 +1,98 @@
+From a6e5247b5d609568a664dadc692b43282308897b Mon Sep 17 00:00:00 2001
+From: Will Deacon <will.deacon@arm.com>
+Date: Tue, 2 Feb 2016 12:46:25 +0000
+Subject: [PATCH 219/233] arm64: lib: improve copy_page to deal with 128 bytes
+ at a time
+
+We want to avoid lots of different copy_page implementations, settling
+for something that is "good enough" everywhere and hopefully easy to
+understand and maintain whilst we're at it.
+
+This patch reworks our copy_page implementation based on discussions
+with Cavium on the list and benchmarking on Cortex-A processors so that:
+
+  - The loop is unrolled to copy 128 bytes per iteration
+
+  - The reads are offset so that we read from the next 128-byte block
+    in the same iteration that we store the previous block
+
+  - Explicit prefetch instructions are removed for now, since they hurt
+    performance on CPUs with hardware prefetching
+
+  - The loop exit condition is calculated at the start of the loop
+
+Change-Id: I0d9f3bbe4efa2751f41432a3b4b299fbb0e494be
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Tested-by: Andrew Pinski <apinski@cavium.com>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ arch/arm64/lib/copy_page.S | 46 +++++++++++++++++++++++++++++++-------
+ 1 file changed, 38 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/lib/copy_page.S b/arch/arm64/lib/copy_page.S
+index 512b9a7b980e..2534533ceb1d 100644
+--- a/arch/arm64/lib/copy_page.S
++++ b/arch/arm64/lib/copy_page.S
+@@ -27,20 +27,50 @@
+  *	x1 - src
+  */
+ ENTRY(copy_page)
+-	/* Assume cache line size is 64 bytes. */
+-	prfm	pldl1strm, [x1, #64]
+-1:	ldp	x2, x3, [x1]
++	ldp	x2, x3, [x1]
+ 	ldp	x4, x5, [x1, #16]
+ 	ldp	x6, x7, [x1, #32]
+ 	ldp	x8, x9, [x1, #48]
+-	add	x1, x1, #64
+-	prfm	pldl1strm, [x1, #64]
++	ldp	x10, x11, [x1, #64]
++	ldp	x12, x13, [x1, #80]
++	ldp	x14, x15, [x1, #96]
++	ldp	x16, x17, [x1, #112]
++
++	mov	x18, #(PAGE_SIZE - 128)
++	add	x1, x1, #128
++1:
++	subs	x18, x18, #128
++
+ 	stnp	x2, x3, [x0]
++	ldp	x2, x3, [x1]
+ 	stnp	x4, x5, [x0, #16]
++	ldp	x4, x5, [x1, #16]
+ 	stnp	x6, x7, [x0, #32]
++	ldp	x6, x7, [x1, #32]
+ 	stnp	x8, x9, [x0, #48]
+-	add	x0, x0, #64
+-	tst	x1, #(PAGE_SIZE - 1)
+-	b.ne	1b
++	ldp	x8, x9, [x1, #48]
++	stnp	x10, x11, [x0, #64]
++	ldp	x10, x11, [x1, #64]
++	stnp	x12, x13, [x0, #80]
++	ldp	x12, x13, [x1, #80]
++	stnp	x14, x15, [x0, #96]
++	ldp	x14, x15, [x1, #96]
++	stnp	x16, x17, [x0, #112]
++	ldp	x16, x17, [x1, #112]
++
++	add	x0, x0, #128
++	add	x1, x1, #128
++
++	b.gt	1b
++
++	stnp	x2, x3, [x0]
++	stnp	x4, x5, [x0, #16]
++	stnp	x6, x7, [x0, #32]
++	stnp	x8, x9, [x0, #48]
++	stnp	x10, x11, [x0, #64]
++	stnp	x12, x13, [x0, #80]
++	stnp	x14, x15, [x0, #96]
++	stnp	x16, x17, [x0, #112]
++
+ 	ret
+ ENDPROC(copy_page)
+-- 
+2.18.0
+

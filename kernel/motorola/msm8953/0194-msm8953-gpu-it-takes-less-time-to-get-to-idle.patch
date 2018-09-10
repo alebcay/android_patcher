@@ -1,0 +1,26 @@
+From cdfb8854d6654e725868342d0cbab96b56b8a695 Mon Sep 17 00:00:00 2001
+From: klozz <shaclone707@gmail.com>
+Date: Thu, 30 Aug 2018 06:54:38 -0400
+Subject: [PATCH 194/233] msm8953-gpu: it takes less time to get to idle
+
+Signed-off-by: klozz <shaclone707@gmail.com>
+---
+ arch/arm/boot/dts/qcom/msm8953-gpu.dtsi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/qcom/msm8953-gpu.dtsi b/arch/arm/boot/dts/qcom/msm8953-gpu.dtsi
+index 9c0720402984..72fecb5114a1 100644
+--- a/arch/arm/boot/dts/qcom/msm8953-gpu.dtsi
++++ b/arch/arm/boot/dts/qcom/msm8953-gpu.dtsi
+@@ -69,7 +69,7 @@
+ 
+ 		qcom,initial-pwrlevel = <5>;
+ 
+-		qcom,idle-timeout = <80>; //msecs
++		qcom,idle-timeout = <40>; //msecs
+ 		qcom,deep-nap-timeout = <100>; //msecs
+ 		qcom,strtstp-sleepwake;
+ 
+-- 
+2.18.0
+

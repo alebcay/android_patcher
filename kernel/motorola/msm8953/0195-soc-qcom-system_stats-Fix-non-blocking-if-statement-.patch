@@ -1,0 +1,40 @@
+From 3f700e0dcc70683ab960be6490d4903500aa94b3 Mon Sep 17 00:00:00 2001
+From: Sultan Alsawaf <sultanxda@gmail.com>
+Date: Mon, 13 Aug 2018 01:54:25 -0700
+Subject: [PATCH 195/233] soc: qcom: system_stats: Fix non-blocking
+ if-statement warning
+
+Signed-off-by: Sultan Alsawaf <sultanxda@gmail.com>
+---
+ drivers/soc/qcom/rpm_stats.c | 15 +++++++--------
+ 1 file changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/soc/qcom/rpm_stats.c b/drivers/soc/qcom/rpm_stats.c
+index 40e23339abd8..1e8bacc38192 100644
+--- a/drivers/soc/qcom/rpm_stats.c
++++ b/drivers/soc/qcom/rpm_stats.c
+@@ -266,14 +266,13 @@ static ssize_t msm_rpmstats_file_read(struct file *file, char __user *bufu,
+ 			prvdata->num_records = readl_relaxed(prvdata->reg_base);
+ 	}
+ 
+-	if ((*ppos >= prvdata->len)
+-		&& (prvdata->read_idx < prvdata->num_records)) {
+-			if (prvdata->platform_data->version == 1)
+-				prvdata->len = msm_rpmstats_copy_stats(prvdata);
+-			else if (prvdata->platform_data->version == 2)
+-				prvdata->len = msm_rpmstats_copy_stats_v2(
+-						prvdata);
+-			*ppos = 0;
++	if ((*ppos >= prvdata->len) &&
++		(prvdata->read_idx < prvdata->num_records)) {
++		if (prvdata->platform_data->version == 1)
++			prvdata->len = msm_rpmstats_copy_stats(prvdata);
++		else if (prvdata->platform_data->version == 2)
++			prvdata->len = msm_rpmstats_copy_stats_v2(prvdata);
++		*ppos = 0;
+ 	}
+ 
+ 	return simple_read_from_buffer(bufu, count, ppos,
+-- 
+2.18.0
+

@@ -1,0 +1,31 @@
+From 499a0e056acc14eaefed0e238e8b7c193055af6c Mon Sep 17 00:00:00 2001
+From: Tim Murray <timmurray@google.com>
+Date: Mon, 29 Feb 2016 09:57:46 -0800
+Subject: [PATCH 212/233] ion: adjust system heap pool orders
+
+As part of the change to fix unmovable block migration over time, we
+need to reduce the orders requested by ion to under order-5
+allocations. In a future CL, we can add fixed-size larger-order pools
+to improve performance when allocating large buffers.
+
+Change-Id: I1ca336c8057b984987a5a5c28a86ab36488e08ea
+---
+ drivers/staging/android/ion/ion_system_heap.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/staging/android/ion/ion_system_heap.c b/drivers/staging/android/ion/ion_system_heap.c
+index 062de5ae1738..10e8a73cee3c 100644
+--- a/drivers/staging/android/ion/ion_system_heap.c
++++ b/drivers/staging/android/ion/ion_system_heap.c
+@@ -37,7 +37,7 @@ static gfp_t high_order_gfp_flags = (GFP_HIGHUSER | __GFP_NOWARN |
+ static gfp_t low_order_gfp_flags  = (GFP_HIGHUSER | __GFP_NOWARN);
+ 
+ #ifndef CONFIG_ALLOC_BUFFERS_IN_4K_CHUNKS
+-static const unsigned int orders[] = {9, 8, 4, 0};
++static const unsigned int orders[] = {4, 0};
+ #else
+ static const unsigned int orders[] = {0};
+ #endif
+-- 
+2.18.0
+

@@ -1,0 +1,110 @@
+From bef92211ea504286b28d8834d5bbf2d668acba4b Mon Sep 17 00:00:00 2001
+From: Wei Wang <wvw@google.com>
+Date: Wed, 22 Feb 2017 12:16:19 -0800
+Subject: [PATCH 210/233] ANDROID: ARM64: smp: disable preempt in backtracing
+ across all cores
+
+We use IPI instead of NMI in ARM64 to get backtrace of all CPUs.
+However, smp_processor_id expects preempt disabled, and this leads to
+a kernel BUG seen as below:
+
+c3  19299 SysRq : Show backtrace of all active CPUs
+c3  19299 BUG: using smp_processor_id() in preemptible [00000000] code: sh/19299
+c3  19299 caller is debug_smp_processor_id+0x1c/0x24
+c3  19299 CPU: 3 PID: 19299 Comm: sh Tainted: G        W      3.18.31-gb1be511 #1
+c3  19299 Hardware name: HTC Corporation. MSM8996pro + PMI8996 Sailfish XB (DT)
+c3  19299 Call trace:
+c3  19299 [<ffffffc00008aab4>] dump_backtrace+0x0/0x23c
+c3  19299 [<ffffffc00008ad04>] show_stack+0x14/0x1c
+c3  19299 [<ffffffc000e29f38>] dump_stack+0x80/0xa4
+c3  19299 [<ffffffc0003147a4>] check_preemption_disabled+0xe0/0x104
+c3  19299 [<ffffffc0003147e4>] debug_smp_processor_id+0x1c/0x24
+c3  19299 [<ffffffc000092b24>] arch_trigger_all_cpu_backtrace+0x18/0xdc
+c3  19299 [<ffffffc00048dd64>] sysrq_handle_showallcpus+0xc/0x14
+c3  19299 [<ffffffc00048e33c>] __handle_sysrq+0x9c/0x154
+c3  19299 [<ffffffc00048e724>] write_sysrq_trigger+0x54/0x68
+c3  19299 [<ffffffc0001f9c54>] proc_reg_write+0x68/0x84
+c3  19299 [<ffffffc0001a6e0c>] vfs_write+0xbc/0x18c
+c3  19299 [<ffffffc0001a6fd4>] SyS_write+0x54/0xa4
+c3  19299 Backtrace for cpu 3 (current):
+c3  19299 CPU: 3 PID: 19299 Comm: sh Tainted: G        W      3.18.31-gb1be511 #1
+c3  19299 Hardware name: HTC Corporation. MSM8996pro + PMI8996 Sailfish XB (DT)
+c3  19299 Call trace:
+c3  19299 [<ffffffc00008aab4>] dump_backtrace+0x0/0x23c
+c3  19299 [<ffffffc00008ad04>] show_stack+0x14/0x1c
+c3  19299 [<ffffffc000e29f38>] dump_stack+0x80/0xa4
+c3  19299 [<ffffffc000092b70>] arch_trigger_all_cpu_backtrace+0x64/0xdc
+c3  19299 [<ffffffc00048dd64>] sysrq_handle_showallcpus+0xc/0x14
+c3  19299 [<ffffffc00048e33c>] __handle_sysrq+0x9c/0x154
+c3  19299 [<ffffffc00048e724>] write_sysrq_trigger+0x54/0x68
+c3  19299 [<ffffffc0001f9c54>] proc_reg_write+0x68/0x84
+c3  19299 [<ffffffc0001a6e0c>] vfs_write+0xbc/0x18c
+c3  19299 [<ffffffc0001a6fd4>] SyS_write+0x54/0xa4
+c3  19299
+c3  19299 sending IPI to all other CPUs:
+c3  19299 BUG: using smp_processor_id() in preemptible [00000000] code: sh/19299
+c3  19299 caller is debug_smp_processor_id+0x1c/0x24
+c3  19299 CPU: 3 PID: 19299 Comm: sh Tainted: G        W      3.18.31-gb1be511 #1
+c3  19299 Hardware name: HTC Corporation. MSM8996pro + PMI8996 Sailfish XB (DT)
+c3  19299 Call trace:
+c3  19299 [<ffffffc00008aab4>] dump_backtrace+0x0/0x23c
+c3  19299 [<ffffffc00008ad04>] show_stack+0x14/0x1c
+c3  19299 [<ffffffc000e29f38>] dump_stack+0x80/0xa4
+c3  19299 [<ffffffc0003147a4>] check_preemption_disabled+0xe0/0x104
+c3  19299 [<ffffffc0003147e4>] debug_smp_processor_id+0x1c/0x24
+c3  19299 [<ffffffc000327d24>] gic_raise_softirq+0x128/0x158
+c3  19299 [<ffffffc000092828>] smp_cross_call_common+0x80/0x94
+c3  19299 [<ffffffc000092b94>] arch_trigger_all_cpu_backtrace+0x88/0xdc
+c3  19299 [<ffffffc00048dd64>] sysrq_handle_showallcpus+0xc/0x14
+c3  19299 [<ffffffc00048e33c>] __handle_sysrq+0x9c/0x154
+c3  19299 [<ffffffc00048e724>] write_sysrq_trigger+0x54/0x68
+c3  19299 [<ffffffc0001f9c54>] proc_reg_write+0x68/0x84
+c3  19299 [<ffffffc0001a6e0c>] vfs_write+0xbc/0x18c
+c3  19299 [<ffffffc0001a6fd4>] SyS_write+0x54/0xa4
+
+Bug: 35409577
+Bug: 34193533
+Test: on marlin, trigger sysrq
+Change-Id: I0239f388c8ec63f10fc73a32bf8a7deddc408104
+Signed-off-by: Wei Wang <wvw@google.com>
+Signed-off-by: Francisco Franco <franciscofranco.1990@gmail.com>
+---
+ arch/arm64/kernel/smp.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index ccab7aa4eebc..e3fb705f35c6 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -605,15 +605,18 @@ static unsigned long backtrace_flag;
+ 
+ static void smp_send_all_cpu_backtrace(void)
+ {
+-	unsigned int this_cpu = smp_processor_id();
++	unsigned int this_cpu;
+ 	int i;
+ 
+-	if (test_and_set_bit(0, &backtrace_flag))
++	this_cpu = get_cpu();;
++	if (test_and_set_bit(0, &backtrace_flag)) {
+ 		/*
+ 		 * If there is already a trigger_all_cpu_backtrace() in progress
+ 		 * (backtrace_flag == 1), don't output double cpu dump infos.
+ 		 */
++		put_cpu();
+ 		return;
++	}
+ 
+ 	cpumask_copy(&backtrace_mask, cpu_online_mask);
+ 	cpu_clear(this_cpu, backtrace_mask);
+@@ -625,6 +628,7 @@ static void smp_send_all_cpu_backtrace(void)
+ 	if (!cpus_empty(backtrace_mask))
+ 		smp_cross_call_common(&backtrace_mask, IPI_CPU_BACKTRACE);
+ 
++	put_cpu();
+ 	/* Wait for up to 10 seconds for all other CPUs to do the backtrace */
+ 	for (i = 0; i < 10 * 1000; i++) {
+ 		if (cpumask_empty(&backtrace_mask))
+-- 
+2.18.0
+

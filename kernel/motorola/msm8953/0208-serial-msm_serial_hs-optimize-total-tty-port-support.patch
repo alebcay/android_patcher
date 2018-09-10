@@ -1,0 +1,35 @@
+From accfa51d41a8fbcac5b3a3f81a2be6425077a192 Mon Sep 17 00:00:00 2001
+From: Roopesh Rajashekharaiah Nataraja <roopeshr@codeaurora.org>
+Date: Thu, 13 Jul 2017 12:51:33 +0530
+Subject: [PATCH 208/233] serial: msm_serial_hs: optimize total tty port
+ support
+
+we do not use the high number of tty port for HSUART. Make this
+optimal based on the use cases.
+
+Bug: 63537242
+
+Change-Id: If82fc1a3457fae7503d7557817ca776f19027da7
+Signed-off-by: Mukesh Kumar Savaliya <msavaliy@codeaurora.org>
+Signed-off-by: Roopesh Rajashekharaiah Nataraja <roopeshr@codeaurora.org>
+Signed-off-by: Siqi Lin <siqilin@google.com>
+---
+ drivers/tty/serial/msm_serial_hs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/tty/serial/msm_serial_hs.c b/drivers/tty/serial/msm_serial_hs.c
+index 683d2fcff714..230d1a9165b8 100644
+--- a/drivers/tty/serial/msm_serial_hs.c
++++ b/drivers/tty/serial/msm_serial_hs.c
+@@ -272,7 +272,7 @@ static struct of_device_id msm_hs_match_table[] = {
+ #define UARTDM_TX_BUF_SIZE UART_XMIT_SIZE
+ #define UARTDM_RX_BUF_SIZE 512
+ #define RETRY_TIMEOUT 5
+-#define UARTDM_NR 256
++#define UARTDM_NR 4
+ #define BAM_PIPE_MIN 0
+ #define BAM_PIPE_MAX 11
+ #define BUS_SCALING 1
+-- 
+2.18.0
+

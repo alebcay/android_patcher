@@ -1,0 +1,182 @@
+From 29f115ecd7d8d5efe79caaa17706bd1259d7264e Mon Sep 17 00:00:00 2001
+From: Philip Cuadra <philipcuadra@google.com>
+Date: Sat, 10 Jun 2017 21:53:55 -0700
+Subject: [PATCH 204/233] tty: move tty_port workqueue to be a kthread
+
+This makes each tty_port have their own kthread, hopefully allowing them
+a bit more freedom in scheduling when they reveive data.
+
+Bug: 36106419
+Test:  run Bluetooth audio, ensure separate tty thread is created.
+
+Based on a patch from Philip Cuadra <philipcuadra@google.com>
+Based on a patch from Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Signed-off-by:  Philip Cuadra <philipcuadra@google.com>
+
+Change-Id: I9169b1f7014d396ae49f436a26c992623677105e
+---
+ drivers/tty/n_tty.c      |  2 +-
+ drivers/tty/tty_buffer.c | 21 ++++++++++++++++-----
+ drivers/tty/tty_io.c     |  2 +-
+ drivers/tty/tty_ldisc.c  |  5 +++--
+ drivers/tty/tty_port.c   |  2 +-
+ include/linux/tty.h      |  5 ++++-
+ 6 files changed, 26 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/tty/n_tty.c b/drivers/tty/n_tty.c
+index 09093dea169f..09409f015e8d 100644
+--- a/drivers/tty/n_tty.c
++++ b/drivers/tty/n_tty.c
+@@ -230,7 +230,7 @@ static void n_tty_set_room(struct tty_struct *tty)
+ 		 */
+ 		WARN_RATELIMIT(test_bit(TTY_LDISC_HALTED, &tty->flags),
+ 			       "scheduling buffer work for halted ldisc\n");
+-		queue_work(system_unbound_wq, &tty->port->buf.work);
++		queue_kthread_work(&tty->port->worker, &tty->port->buf.work);
+ 	}
+ }
+ 
+diff --git a/drivers/tty/tty_buffer.c b/drivers/tty/tty_buffer.c
+index 9b240b3ef677..dc0646479c02 100644
+--- a/drivers/tty/tty_buffer.c
++++ b/drivers/tty/tty_buffer.c
+@@ -72,7 +72,7 @@ void tty_buffer_unlock_exclusive(struct tty_port *port)
+ 	atomic_dec(&buf->priority);
+ 	mutex_unlock(&buf->lock);
+ 	if (restart)
+-		queue_work(system_unbound_wq, &buf->work);
++		queue_kthread_work(&port->worker, &buf->work);
+ }
+ EXPORT_SYMBOL_GPL(tty_buffer_unlock_exclusive);
+ 
+@@ -133,6 +133,7 @@ void tty_buffer_free_all(struct tty_port *port)
+ 	buf->tail = &buf->sentinel;
+ 
+ 	atomic_set(&buf->mem_used, 0);
++	kthread_stop(port->worker_thread);
+ }
+ 
+ /**
+@@ -364,7 +365,7 @@ void tty_schedule_flip(struct tty_port *port)
+ 	struct tty_bufhead *buf = &port->buf;
+ 
+ 	buf->tail->commit = buf->tail->used;
+-	schedule_work(&buf->work);
++	queue_kthread_work(&port->worker, &buf->work);
+ }
+ EXPORT_SYMBOL(tty_schedule_flip);
+ 
+@@ -431,7 +432,7 @@ receive_buf(struct tty_struct *tty, struct tty_buffer *head, int count)
+  *		 'consumer'
+  */
+ 
+-static void flush_to_ldisc(struct work_struct *work)
++static void flush_to_ldisc(struct kthread_work *work)
+ {
+ 	struct tty_port *port = container_of(work, struct tty_port, buf.work);
+ 	struct tty_bufhead *buf = &port->buf;
+@@ -492,7 +493,7 @@ static void flush_to_ldisc(struct work_struct *work)
+  */
+ void tty_flush_to_ldisc(struct tty_struct *tty)
+ {
+-	flush_work(&tty->port->buf.work);
++	flush_kthread_work(&tty->port->buf.work);
+ }
+ 
+ /**
+@@ -531,8 +532,18 @@ void tty_buffer_init(struct tty_port *port)
+ 	init_llist_head(&buf->free);
+ 	atomic_set(&buf->mem_used, 0);
+ 	atomic_set(&buf->priority, 0);
+-	INIT_WORK(&buf->work, flush_to_ldisc);
+ 	buf->mem_limit = TTYB_DEFAULT_MEM_LIMIT;
++	init_kthread_work(&buf->work, flush_to_ldisc);
++	init_kthread_worker(&port->worker);
++	port->worker_thread = kthread_run(kthread_worker_fn, &port->worker,
++					  "tty_worker_thread");
++	if (IS_ERR(port->worker_thread)) {
++		/*
++		 * Not good, we can't unwind, this tty is going to be really
++		 * sad...
++		 */
++		pr_err("Unable to start tty_worker_thread\n");
++	}
+ }
+ 
+ /**
+diff --git a/drivers/tty/tty_io.c b/drivers/tty/tty_io.c
+index eb19e8bb4500..c0e02547c832 100644
+--- a/drivers/tty/tty_io.c
++++ b/drivers/tty/tty_io.c
+@@ -1634,7 +1634,7 @@ void release_tty(struct tty_struct *tty, int idx)
+ 	tty->port->itty = NULL;
+ 	if (tty->link)
+ 		tty->link->port->itty = NULL;
+-	cancel_work_sync(&tty->port->buf.work);
++	flush_kthread_work(&tty->port->buf.work);
+ 
+ 	if (tty->link)
+ 		tty_kref_put(tty->link);
+diff --git a/drivers/tty/tty_ldisc.c b/drivers/tty/tty_ldisc.c
+index 726c6f5a5df3..d1b86ae9faf4 100644
+--- a/drivers/tty/tty_ldisc.c
++++ b/drivers/tty/tty_ldisc.c
+@@ -590,9 +590,10 @@ int tty_set_ldisc(struct tty_struct *tty, int ldisc)
+ 
+ 	/* Restart the work queue in case no characters kick it off. Safe if
+ 	   already running */
+-	schedule_work(&tty->port->buf.work);
++	queue_kthread_work(&tty->port->worker, &tty->port->buf.work);
+ 	if (o_tty)
+-		schedule_work(&o_tty->port->buf.work);
++		queue_kthread_work(&o_tty->port->worker,
++				   &o_tty->port->buf.work);
+ 
+ 	tty_unlock(tty);
+ 	return retval;
+diff --git a/drivers/tty/tty_port.c b/drivers/tty/tty_port.c
+index e89a9bb8ac0f..170c86ae3540 100644
+--- a/drivers/tty/tty_port.c
++++ b/drivers/tty/tty_port.c
+@@ -131,7 +131,7 @@ EXPORT_SYMBOL(tty_port_free_xmit_buf);
+  */
+ void tty_port_destroy(struct tty_port *port)
+ {
+-	cancel_work_sync(&port->buf.work);
++	flush_kthread_work(&port->buf.work);
+ 	tty_buffer_free_all(port);
+ }
+ EXPORT_SYMBOL(tty_port_destroy);
+diff --git a/include/linux/tty.h b/include/linux/tty.h
+index 053baea42955..a533e6088a8a 100644
+--- a/include/linux/tty.h
++++ b/include/linux/tty.h
+@@ -12,6 +12,7 @@
+ #include <uapi/linux/tty.h>
+ #include <linux/rwsem.h>
+ #include <linux/llist.h>
++#include <linux/kthread.h>
+ 
+ 
+ 
+@@ -59,7 +60,7 @@ static inline char *flag_buf_ptr(struct tty_buffer *b, int ofs)
+ 
+ struct tty_bufhead {
+ 	struct tty_buffer *head;	/* Queue head */
+-	struct work_struct work;
++	struct kthread_work work;
+ 	struct mutex	   lock;
+ 	atomic_t	   priority;
+ 	struct tty_buffer sentinel;
+@@ -218,6 +219,8 @@ struct tty_port {
+ 						   based drain is needed else
+ 						   set to size of fifo */
+ 	struct kref		kref;		/* Ref counter */
++	struct kthread_worker   worker;         /* worker thread */
++	struct task_struct      *worker_thread; /* worker thread */
+ };
+ 
+ /*
+-- 
+2.18.0
+

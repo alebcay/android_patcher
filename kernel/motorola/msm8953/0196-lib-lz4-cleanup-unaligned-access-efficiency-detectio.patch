@@ -1,0 +1,35 @@
+From 203f16e728c935dfff3e033c02cb311dadc313f7 Mon Sep 17 00:00:00 2001
+From: Rui Salvaterra <rsalvaterra@gmail.com>
+Date: Sat, 9 Apr 2016 22:05:35 +0100
+Subject: [PATCH 196/233] lib: lz4: cleanup unaligned access efficiency
+ detection
+
+These identifiers are bogus. The interested architectures should define
+HAVE_EFFICIENT_UNALIGNED_ACCESS whenever relevant to do so. If this
+isn't true for some arch, it should be fixed in the arch definition.
+
+Signed-off-by: Rui Salvaterra <rsalvaterra@gmail.com>
+Reviewed-by: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ lib/lz4/lz4defs.h | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/lib/lz4/lz4defs.h b/lib/lz4/lz4defs.h
+index 0710a62ad2f6..c79d7ea8a38e 100644
+--- a/lib/lz4/lz4defs.h
++++ b/lib/lz4/lz4defs.h
+@@ -24,9 +24,7 @@
+ typedef struct _U16_S { u16 v; } U16_S;
+ typedef struct _U32_S { u32 v; } U32_S;
+ typedef struct _U64_S { u64 v; } U64_S;
+-#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)		\
+-	|| defined(CONFIG_ARM) && __LINUX_ARM_ARCH__ >= 6	\
+-	&& defined(ARM_EFFICIENT_UNALIGNED_ACCESS)
++#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+ 
+ #define A16(x) (((U16_S *)(x))->v)
+ #define A32(x) (((U32_S *)(x))->v)
+-- 
+2.18.0
+

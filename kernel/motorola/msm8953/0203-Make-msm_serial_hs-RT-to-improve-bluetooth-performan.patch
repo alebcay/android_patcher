@@ -1,0 +1,54 @@
+From 550f395e4c1eb2d53efb6a38204ecfc26d3273c1 Mon Sep 17 00:00:00 2001
+From: Philip Cuadra <philipcuadra@google.com>
+Date: Mon, 27 Mar 2017 23:38:27 -0700
+Subject: [PATCH 203/233] Make msm_serial_hs RT to improve bluetooth
+ performance
+
+msm_serial_hs threads for RX and TX are responsible for passing key
+bluetooth buffers, such as bluetooth audio, between the Bluetooth HW and
+the upper layers of the stack.  These threads are therefore on the
+critical path for bluetooth audio latency, and should be scheduled as
+RT threads in order to ensure that they meet audio deadlines.
+
+Bug 36106419
+
+Test:  Play bluetooth audio, confirm msm_serial_hs_0 threads are
+scheduled as RT threads via systrace
+Change-Id: I078dbcbab189a03bdc5fdfde6ec8c41c79c11610
+Signed-off-by: Philip Cuadra <philipcuadra@google.com>
+---
+ drivers/tty/serial/msm_serial_hs.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/tty/serial/msm_serial_hs.c b/drivers/tty/serial/msm_serial_hs.c
+index ebb9297536ee..ec9fdbb4edbe 100644
+--- a/drivers/tty/serial/msm_serial_hs.c
++++ b/drivers/tty/serial/msm_serial_hs.c
+@@ -2746,6 +2746,7 @@ static int uartdm_init_port(struct uart_port *uport)
+ 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
+ 	struct msm_hs_tx *tx = &msm_uport->tx;
+ 	struct msm_hs_rx *rx = &msm_uport->rx;
++	struct sched_param param = { .sched_priority = 1 };
+ 
+ 	init_waitqueue_head(&rx->wait);
+ 	init_waitqueue_head(&tx->wait);
+@@ -2760,6 +2761,8 @@ static int uartdm_init_port(struct uart_port *uport)
+ 		MSM_HS_ERR("%s(): error creating task", __func__);
+ 		goto exit_lh_init;
+ 	}
++	sched_setscheduler(rx->task, SCHED_FIFO, &param);
++
+ 	init_kthread_work(&rx->kwork, msm_serial_hs_rx_work);
+ 
+ 	init_kthread_worker(&tx->kworker);
+@@ -2769,6 +2772,7 @@ static int uartdm_init_port(struct uart_port *uport)
+ 		MSM_HS_ERR("%s(): error creating task", __func__);
+ 		goto exit_lh_init;
+ 	}
++	sched_setscheduler(tx->task, SCHED_FIFO, &param);
+ 
+ 	init_kthread_work(&tx->kwork, msm_serial_hs_tx_work);
+ 
+-- 
+2.18.0
+

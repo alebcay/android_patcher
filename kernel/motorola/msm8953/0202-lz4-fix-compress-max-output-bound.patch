@@ -1,0 +1,33 @@
+From 7f4f3465a576f63c8261d23b84539ca47c265783 Mon Sep 17 00:00:00 2001
+From: David Lin <dtwlin@google.com>
+Date: Mon, 14 Aug 2017 21:31:19 -0700
+Subject: [PATCH 202/233] lz4: fix compress max output bound
+
+Max output size can be larger than the source length if the input data
+is 'too' random. This is normal and thus should be allowed since the
+caller is expected to have the actual size of the output written to be
+updated via the dst_len variable.
+
+Bug: 62425246
+Change-Id: I44a8abb6fb55936f2fd47616954341ba6b0d62ec
+Signed-off-by: David Lin <dtwlin@google.com>
+---
+ lib/lz4/lz4_compress.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/lz4/lz4_compress.c b/lib/lz4/lz4_compress.c
+index 53f313f05185..668400bd38ee 100644
+--- a/lib/lz4/lz4_compress.c
++++ b/lib/lz4/lz4_compress.c
+@@ -942,7 +942,7 @@ EXPORT_SYMBOL(LZ4_compress_fast_continue);
+ int lz4_compress(const unsigned char *src, size_t src_len, unsigned char *dst,
+ 	size_t *dst_len, void *wrkmem) {
+ 	*dst_len = LZ4_compress_default(src, dst, src_len,
+-		*dst_len, wrkmem);
++		LZ4_COMPRESSBOUND(src_len), wrkmem);
+ 
+ 	/*
+ 	 * Prior lz4_compress will return -1 in case of error
+-- 
+2.18.0
+

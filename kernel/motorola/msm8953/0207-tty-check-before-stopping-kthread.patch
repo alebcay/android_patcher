@@ -1,0 +1,33 @@
+From 796962a77aa4294d81b8978ec8a2637755b00b31 Mon Sep 17 00:00:00 2001
+From: Philip Cuadra <philipcuadra@google.com>
+Date: Thu, 6 Jul 2017 12:27:15 -0700
+Subject: [PATCH 207/233] tty:  check before stopping kthread
+
+Kthread allocation can fail, so check that it's not an error value
+before trying to stop it.
+
+Bug: 63354008
+Test: build & run bluetooth audio
+Change-Id: I957059c4539b43359887c67815e243633bdb0a24
+Signed-off-by: Philip Cuadra <philipcuadra@google.com>
+---
+ drivers/tty/tty_buffer.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/tty/tty_buffer.c b/drivers/tty/tty_buffer.c
+index dc0646479c02..ecf47fa1688c 100644
+--- a/drivers/tty/tty_buffer.c
++++ b/drivers/tty/tty_buffer.c
+@@ -133,7 +133,8 @@ void tty_buffer_free_all(struct tty_port *port)
+ 	buf->tail = &buf->sentinel;
+ 
+ 	atomic_set(&buf->mem_used, 0);
+-	kthread_stop(port->worker_thread);
++	if (!IS_ERR_OR_NULL(port->worker_thread))
++		kthread_stop(port->worker_thread);
+ }
+ 
+ /**
+-- 
+2.18.0
+

@@ -1,0 +1,39 @@
+From dd59a2ee6022f488e79861283d50b7ca38bafb10 Mon Sep 17 00:00:00 2001
+From: Philip Cuadra <philipcuadra@google.com>
+Date: Mon, 12 Jun 2017 15:47:19 -0700
+Subject: [PATCH 206/233] msm_serial_hs:  make the Bluetooth tty thread RT
+
+For Bluetooth, the tty kthread should be RT in order to avoid scheduling
+delays.
+
+Bug: 36106419
+Test: play bluetooth audio, verify tty kthread runs at RT via systrace
+Change-Id: I441dd10d22f8831d055166bcd1ff9f01e5ca13d4
+Signed-off-by:  Philip Cuadra <philipcuadra@google.com>
+---
+ drivers/tty/serial/msm_serial_hs.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/tty/serial/msm_serial_hs.c b/drivers/tty/serial/msm_serial_hs.c
+index ec9fdbb4edbe..683d2fcff714 100644
+--- a/drivers/tty/serial/msm_serial_hs.c
++++ b/drivers/tty/serial/msm_serial_hs.c
+@@ -61,6 +61,7 @@
+ #include <linux/ipc_logging.h>
+ #include <asm/irq.h>
+ #include <linux/kthread.h>
++#include <uapi/linux/sched.h>
+ 
+ #include <linux/msm-sps.h>
+ #include <linux/platform_data/msm_serial_hs.h>
+@@ -3288,6 +3289,7 @@ static void  msm_serial_hs_rt_init(struct uart_port *uport)
+ 	msm_uport->pm_state = MSM_HS_PM_SUSPENDED;
+ 	mutex_unlock(&msm_uport->mtx);
+ 	pm_runtime_enable(uport->dev);
++	tty_port_set_policy(&uport->state->port, SCHED_FIFO, 1);
+ }
+ 
+ static int msm_hs_runtime_suspend(struct device *dev)
+-- 
+2.18.0
+

@@ -1,0 +1,26 @@
+From f9d7d4f8b25193a415582db0eef2a062d22e59b9 Mon Sep 17 00:00:00 2001
+From: Caleb Xu <calebcenter@live.com>
+Date: Mon, 10 Sep 2018 06:12:39 +0000
+Subject: [PATCH] sanders: optimized CRC
+
+Change-Id: Ia55bcdcdb3242779d1c2ad5f169774fd53a2e2ed
+---
+ arch/arm64/configs/sanders_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/configs/sanders_defconfig b/arch/arm64/configs/sanders_defconfig
+index 636d5c02d941..40646349e7ee 100644
+--- a/arch/arm64/configs/sanders_defconfig
++++ b/arch/arm64/configs/sanders_defconfig
+@@ -4842,7 +4842,7 @@ CONFIG_CRYPTO_XCBC=y
+ # Digest
+ #
+ CONFIG_CRYPTO_CRC32C=y
+-# CONFIG_CRYPTO_CRC32 is not set
++CONFIG_CRYPTO_CRC32_ARM64=y
+ # CONFIG_CRYPTO_CRCT10DIF is not set
+ # CONFIG_CRYPTO_GHASH is not set
+ CONFIG_CRYPTO_MD4=y
+-- 
+2.18.0
+

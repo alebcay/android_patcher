@@ -1,0 +1,13 @@
+<manifest>
+	<!-- <remove-project name="Keertesh19/kernel_motorola_msm8953" /> -->
+	<remove-project name="LineageOS/android_hardware_qcom_thermal" />
+	<remove-project name="LineageOS/android_hardware_lineage_telephony" />
+
+	<!-- <project name="Keertesh19/kernel_motorola_msm8953" remote="github" path="kernel/motorola/msm8953" revision="8.1-moto" /> -->
+	<project name="alebcay/android_prebuilts_clang_host_linux-x86_clang-4691093" remote="github" path="prebuilts/clang/host/linux-x86/clang-4691093" revision="master" />
+	<project name="alebcay/android_patcher" path="patcher" remote="github" revision="oreo" />
+
+	<remote name="fdroid" fetch="https://gitlab.com/fdroid/" />
+	<project path="packages/apps/FDroidPrivilegedExtension" name="privileged-extension.git" remote="fdroid" revision="refs/tags/0.2.8" />
+	<project path="packages/apps/FDroid" name="alebcay/android_packages_apps_FDroid" remote="github" revision="master" />
+</manifest>

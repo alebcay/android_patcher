@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <project name="device_motorola_sanders" path="device/motorola/sanders" remote="rr-devices" revision="oreo" />
+  <project name="Keertesh19/kernel_motorola_msm8953" path="kernel/motorola/msm8953" remote="github" revision="8.1-ods" />
+  <project name="BigTopKrazies/vendor_motorola_sanders" path="vendor/motorola/sanders" remote="github" revision="8.1" />
+  <project name="Keertesh19/prebuilts_gcc_linux-x86_aarch64_aarch64-linaro-7.2" path="prebuilts/gcc/linux-x86/aarch64/aarch64-linaro-7.2" remote="github" revision="master" />
+  <project name="LineageOS/android_packages_resources_devicesettings" path="packages/resources/devicesettings" remote="github" revision="lineage-15.1" />
+  <project name="jhenrique09/prebuilts_clang_host_linux-x86_7.0-DragonTC" path="prebuilts/clang/host/linux-x86/7.0-DragonTC" remote="github" revision="master" />
+</manifest>

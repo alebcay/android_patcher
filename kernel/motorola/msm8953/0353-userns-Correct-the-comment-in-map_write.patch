@@ -1,0 +1,35 @@
+From a5a34f92ab9175bf34a988b9a1b02468c14aaa8e Mon Sep 17 00:00:00 2001
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Fri, 5 Dec 2014 20:03:28 -0600
+Subject: [PATCH 353/363] userns; Correct the comment in map_write
+
+commit 36476beac4f8ca9dc7722790b2e8ef0e8e51034e upstream.
+
+It is important that all maps are less than PAGE_SIZE
+or else setting the last byte of the buffer to '0'
+could write off the end of the allocated storage.
+
+Correct the misleading comment.
+
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ kernel/user_namespace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
+index cc9689628427..7413ef1b1b97 100644
+--- a/kernel/user_namespace.c
++++ b/kernel/user_namespace.c
+@@ -644,7 +644,7 @@ static ssize_t map_write(struct file *file, const char __user *buf,
+ 	if (!page)
+ 		goto out;
+ 
+-	/* Only allow <= page size writes at the beginning of the file */
++	/* Only allow < page size writes at the beginning of the file */
+ 	ret = -EINVAL;
+ 	if ((*ppos != 0) || (count >= PAGE_SIZE))
+ 		goto out;
+-- 
+2.18.0
+

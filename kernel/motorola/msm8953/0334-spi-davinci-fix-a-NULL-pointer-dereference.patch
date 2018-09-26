@@ -1,0 +1,34 @@
+From a7851e61c7b04fccda65aac28dfb74e70b6875b3 Mon Sep 17 00:00:00 2001
+From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+Date: Fri, 10 Aug 2018 11:13:52 +0200
+Subject: [PATCH 334/363] spi: davinci: fix a NULL pointer dereference
+
+commit 563a53f3906a6b43692498e5b3ae891fac93a4af upstream.
+
+On non-OF systems spi->controlled_data may be NULL. This causes a NULL
+pointer derefence on dm365-evm.
+
+Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+Cc: stable@vger.kernel.org
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/spi/spi-davinci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/spi/spi-davinci.c b/drivers/spi/spi-davinci.c
+index 63700ab7bd9f..1107a5d5a256 100644
+--- a/drivers/spi/spi-davinci.c
++++ b/drivers/spi/spi-davinci.c
+@@ -230,7 +230,7 @@ static void davinci_spi_chipselect(struct spi_device *spi, int value)
+ 	}
+ 
+ 	/* program delay transfers if tx_delay is non zero */
+-	if (spicfg->wdelay)
++	if (spicfg && spicfg->wdelay)
+ 		spidat1 |= SPIDAT1_WDEL;
+ 
+ 	/*
+-- 
+2.18.0
+

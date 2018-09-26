@@ -1,0 +1,75 @@
+From d8b444f4133b33f5371f1a6f8b7b611b7f48937e Mon Sep 17 00:00:00 2001
+From: Tomas Bortoli <tomasbortoli@gmail.com>
+Date: Fri, 27 Jul 2018 13:05:58 +0200
+Subject: [PATCH 347/363] 9p: fix multiple NULL-pointer-dereferences
+
+commit 10aa14527f458e9867cf3d2cc6b8cb0f6704448b upstream.
+
+Added checks to prevent GPFs from raising.
+
+Link: http://lkml.kernel.org/r/20180727110558.5479-1-tomasbortoli@gmail.com
+Signed-off-by: Tomas Bortoli <tomasbortoli@gmail.com>
+Reported-by: syzbot+1a262da37d3bead15c39@syzkaller.appspotmail.com
+Cc: stable@vger.kernel.org
+Signed-off-by: Dominique Martinet <dominique.martinet@cea.fr>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/9p/trans_fd.c     | 5 ++++-
+ net/9p/trans_rdma.c   | 3 +++
+ net/9p/trans_virtio.c | 3 +++
+ 3 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/net/9p/trans_fd.c b/net/9p/trans_fd.c
+index e0de928c9827..9d935dc71b83 100644
+--- a/net/9p/trans_fd.c
++++ b/net/9p/trans_fd.c
+@@ -934,7 +934,7 @@ p9_fd_create_tcp(struct p9_client *client, const char *addr, char *args)
+ 	if (err < 0)
+ 		return err;
+ 
+-	if (valid_ipaddr4(addr) < 0)
++	if (addr == NULL || valid_ipaddr4(addr) < 0)
+ 		return -EINVAL;
+ 
+ 	csocket = NULL;
+@@ -982,6 +982,9 @@ p9_fd_create_unix(struct p9_client *client, const char *addr, char *args)
+ 
+ 	csocket = NULL;
+ 
++	if (addr == NULL)
++		return -EINVAL;
++
+ 	if (strlen(addr) >= UNIX_PATH_MAX) {
+ 		pr_err("%s (%d): address too long: %s\n",
+ 		       __func__, task_pid_nr(current), addr);
+diff --git a/net/9p/trans_rdma.c b/net/9p/trans_rdma.c
+index 14ad43b5cf89..d00cb890398b 100644
+--- a/net/9p/trans_rdma.c
++++ b/net/9p/trans_rdma.c
+@@ -623,6 +623,9 @@ rdma_create_trans(struct p9_client *client, const char *addr, char *args)
+ 	struct ib_qp_init_attr qp_attr;
+ 	struct ib_device_attr devattr;
+ 
++	if (addr == NULL)
++		return -EINVAL;
++
+ 	/* Parse the transport specific mount options */
+ 	err = parse_opts(args, &opts);
+ 	if (err < 0)
+diff --git a/net/9p/trans_virtio.c b/net/9p/trans_virtio.c
+index d62df2747682..130180f67ae3 100644
+--- a/net/9p/trans_virtio.c
++++ b/net/9p/trans_virtio.c
+@@ -617,6 +617,9 @@ p9_virtio_create(struct p9_client *client, const char *devname, char *args)
+ 	int ret = -ENOENT;
+ 	int found = 0;
+ 
++	if (devname == NULL)
++		return -EINVAL;
++
+ 	mutex_lock(&virtio_9p_lock);
+ 	list_for_each_entry(chan, &virtio_chan_list, chan_list) {
+ 		if (!strncmp(devname, chan->tag, chan->tag_len) &&
+-- 
+2.18.0
+

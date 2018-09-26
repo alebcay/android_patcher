@@ -1,0 +1,24 @@
+From c47eb0e83ea94d775483de34b8179afd1af07efc Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Date: Sun, 9 Sep 2018 20:07:57 +0200
+Subject: [PATCH 363/363] Linux 3.18.122
+
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index e0fb3bf9100d..36747f87c331 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,6 @@
+ VERSION = 3
+ PATCHLEVEL = 18
+-SUBLEVEL = 121
++SUBLEVEL = 122
+ EXTRAVERSION =
+ NAME = Shuffling Zombie Juror
+ 
+-- 
+2.18.0
+

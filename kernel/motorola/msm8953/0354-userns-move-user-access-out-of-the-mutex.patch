@@ -1,0 +1,86 @@
+From a94245e0c3bf25c5164eaa02fd9a79f9b446cea9 Mon Sep 17 00:00:00 2001
+From: Jann Horn <jannh@google.com>
+Date: Mon, 25 Jun 2018 18:34:19 +0200
+Subject: [PATCH 354/363] userns: move user access out of the mutex
+
+commit 5820f140edef111a9ea2ef414ab2428b8cb805b1 upstream.
+
+The old code would hold the userns_state_mutex indefinitely if
+memdup_user_nul stalled due to e.g. a userfault region. Prevent that by
+moving the memdup_user_nul in front of the mutex_lock().
+
+Note: This changes the error precedence of invalid buf/count/*ppos vs
+map already written / capabilities missing.
+
+Fixes: 22d917d80e84 ("userns: Rework the user_namespace adding uid/gid...")
+Cc: stable@vger.kernel.org
+Signed-off-by: Jann Horn <jannh@google.com>
+Acked-by: Christian Brauner <christian@brauner.io>
+Acked-by: Serge Hallyn <serge@hallyn.com>
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ kernel/user_namespace.c | 39 +++++++++++++++++++--------------------
+ 1 file changed, 19 insertions(+), 20 deletions(-)
+
+diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
+index 7413ef1b1b97..69210b6d5013 100644
+--- a/kernel/user_namespace.c
++++ b/kernel/user_namespace.c
+@@ -601,9 +601,26 @@ static ssize_t map_write(struct file *file, const char __user *buf,
+ 	struct uid_gid_map new_map;
+ 	unsigned idx;
+ 	struct uid_gid_extent *extent = NULL;
+-	unsigned long page = 0;
++	unsigned long page;
+ 	char *kbuf, *pos, *next_line;
+-	ssize_t ret = -EINVAL;
++	ssize_t ret;
++
++	/* Only allow < page size writes at the beginning of the file */
++	if ((*ppos != 0) || (count >= PAGE_SIZE))
++		return -EINVAL;
++
++	/* Get a buffer */
++	page = __get_free_page(GFP_TEMPORARY);
++	kbuf = (char *) page;
++	if (!page)
++		return -ENOMEM;
++
++	/* Slurp in the user data */
++	if (copy_from_user(kbuf, buf, count)) {
++		free_page(page);
++		return -EFAULT;
++	}
++	kbuf[count] = '\0';
+ 
+ 	/*
+ 	 * The userns_state_mutex serializes all writes to any given map.
+@@ -637,24 +654,6 @@ static ssize_t map_write(struct file *file, const char __user *buf,
+ 	if (cap_valid(cap_setid) && !file_ns_capable(file, ns, CAP_SYS_ADMIN))
+ 		goto out;
+ 
+-	/* Get a buffer */
+-	ret = -ENOMEM;
+-	page = __get_free_page(GFP_TEMPORARY);
+-	kbuf = (char *) page;
+-	if (!page)
+-		goto out;
+-
+-	/* Only allow < page size writes at the beginning of the file */
+-	ret = -EINVAL;
+-	if ((*ppos != 0) || (count >= PAGE_SIZE))
+-		goto out;
+-
+-	/* Slurp in the user data */
+-	ret = -EFAULT;
+-	if (copy_from_user(kbuf, buf, count))
+-		goto out;
+-	kbuf[count] = '\0';
+-
+ 	/* Parse the user data */
+ 	ret = -EINVAL;
+ 	pos = kbuf;
+-- 
+2.18.0
+

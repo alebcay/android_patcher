@@ -1,0 +1,56 @@
+From 767dff32ca0c13c1849c9ef8fa8217ea5e0c3071 Mon Sep 17 00:00:00 2001
+From: Nicholas Mc Guire <hofrat@osadl.org>
+Date: Thu, 12 Jul 2018 11:28:24 +0200
+Subject: [PATCH 461/468] ARM: hisi: handle of_iomap and fix missing
+ of_node_put
+
+[ Upstream commit d396cb185c0337aae5664b250cdd9a73f6eb1503 ]
+
+Relying on an unchecked of_iomap() which can return NULL is problematic
+here, an explicit check seems mandatory. Also the call to
+of_find_compatible_node() returns a device node with refcount incremented
+therefor an explicit of_node_put() is needed here.
+
+Signed-off-by: Nicholas Mc Guire <hofrat@osadl.org>
+Fixes: commit 22bae4290457 ("ARM: hi3xxx: add hotplug support")
+Signed-off-by: Wei Xu <xuwei5@hisilicon.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/arm/mach-hisi/hotplug.c | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/mach-hisi/hotplug.c b/arch/arm/mach-hisi/hotplug.c
+index 84e6919f68c7..6385abcd321e 100644
+--- a/arch/arm/mach-hisi/hotplug.c
++++ b/arch/arm/mach-hisi/hotplug.c
+@@ -145,13 +145,20 @@ static int hi3xxx_hotplug_init(void)
+ 	struct device_node *node;
+ 
+ 	node = of_find_compatible_node(NULL, NULL, "hisilicon,sysctrl");
+-	if (node) {
+-		ctrl_base = of_iomap(node, 0);
+-		id = HI3620_CTRL;
+-		return 0;
++	if (!node) {
++		id = ERROR_CTRL;
++		return -ENOENT;
+ 	}
+-	id = ERROR_CTRL;
+-	return -ENOENT;
++
++	ctrl_base = of_iomap(node, 0);
++	of_node_put(node);
++	if (!ctrl_base) {
++		id = ERROR_CTRL;
++		return -ENOMEM;
++	}
++
++	id = HI3620_CTRL;
++	return 0;
+ }
+ 
+ void hi3xxx_set_cpu(int cpu, bool enable)
+-- 
+2.18.0
+

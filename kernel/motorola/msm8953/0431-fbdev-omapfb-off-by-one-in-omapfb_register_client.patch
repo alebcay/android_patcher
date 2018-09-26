@@ -1,0 +1,36 @@
+From 50b65da4b7c5d0809317b30d13a5e0195ae01331 Mon Sep 17 00:00:00 2001
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Tue, 24 Jul 2018 19:11:28 +0200
+Subject: [PATCH 431/468] fbdev: omapfb: off by one in omapfb_register_client()
+
+[ Upstream commit 5ec1ec35b2979b59d0b33381e7c9aac17e159d16 ]
+
+The omapfb_register_client[] array has OMAPFB_PLANE_NUM elements so the
+> should be >= or we are one element beyond the end of the array.
+
+Fixes: 8b08cf2b64f5 ("OMAP: add TI OMAP framebuffer driver")
+Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+Cc: Imre Deak <imre.deak@solidboot.com>
+Signed-off-by: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/video/fbdev/omap/omapfb_main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/omap/omapfb_main.c b/drivers/video/fbdev/omap/omapfb_main.c
+index d8d028d98711..42cf6381e449 100644
+--- a/drivers/video/fbdev/omap/omapfb_main.c
++++ b/drivers/video/fbdev/omap/omapfb_main.c
+@@ -982,7 +982,7 @@ int omapfb_register_client(struct omapfb_notifier_block *omapfb_nb,
+ {
+ 	int r;
+ 
+-	if ((unsigned)omapfb_nb->plane_idx > OMAPFB_PLANE_NUM)
++	if ((unsigned)omapfb_nb->plane_idx >= OMAPFB_PLANE_NUM)
+ 		return -EINVAL;
+ 
+ 	if (!notifier_inited) {
+-- 
+2.18.0
+

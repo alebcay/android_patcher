@@ -1,0 +1,48 @@
+From 3ef171c5cd0e7e1b3d9e1a4c7b18e4128472bc3d Mon Sep 17 00:00:00 2001
+From: Randy Dunlap <rdunlap@infradead.org>
+Date: Fri, 6 Jul 2018 20:53:09 -0700
+Subject: [PATCH 441/468] platform/x86: toshiba_acpi: Fix defined but not used
+ build warnings
+
+[ Upstream commit c2e2a618eb7104e18fdcf739d4d911563812a81c ]
+
+Fix a build warning in toshiba_acpi.c when CONFIG_PROC_FS is not enabled
+by marking the unused function as __maybe_unused.
+
+../drivers/platform/x86/toshiba_acpi.c:1685:12: warning: 'version_proc_show' defined but not used [-Wunused-function]
+
+Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
+Cc: Azael Avalos <coproscefalo@gmail.com>
+Cc: platform-driver-x86@vger.kernel.org
+Cc: Andy Shevchenko <andy@infradead.org>
+Signed-off-by: Darren Hart (VMware) <dvhart@infradead.org>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/platform/x86/toshiba_acpi.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/platform/x86/toshiba_acpi.c b/drivers/platform/x86/toshiba_acpi.c
+index ab6151f05420..c0b64e571a5e 100644
+--- a/drivers/platform/x86/toshiba_acpi.c
++++ b/drivers/platform/x86/toshiba_acpi.c
+@@ -41,6 +41,7 @@
+ #define TOSHIBA_ACPI_VERSION	"0.20"
+ #define PROC_INTERFACE_VERSION	1
+ 
++#include <linux/compiler.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/init.h>
+@@ -1233,7 +1234,7 @@ static const struct file_operations keys_proc_fops = {
+ 	.write		= keys_proc_write,
+ };
+ 
+-static int version_proc_show(struct seq_file *m, void *v)
++static int __maybe_unused version_proc_show(struct seq_file *m, void *v)
+ {
+ 	seq_printf(m, "driver:                  %s\n", TOSHIBA_ACPI_VERSION);
+ 	seq_printf(m, "proc_interface:          %d\n", PROC_INTERFACE_VERSION);
+-- 
+2.18.0
+

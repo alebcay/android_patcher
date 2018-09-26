@@ -1,0 +1,56 @@
+From 2483da00ff42268ecf37e332276227039e36df04 Mon Sep 17 00:00:00 2001
+From: Jann Horn <jannh@google.com>
+Date: Sat, 7 Jul 2018 05:37:22 +0200
+Subject: [PATCH 459/468] mtdchar: fix overflows in adjustment of `count`
+
+[ Upstream commit 6c6bc9ea84d0008024606bf5ba10519e20d851bf ]
+
+The first checks in mtdchar_read() and mtdchar_write() attempt to limit
+`count` such that `*ppos + count <= mtd->size`. However, they ignore the
+possibility of `*ppos > mtd->size`, allowing the calculation of `count` to
+wrap around. `mtdchar_lseek()` prevents seeking beyond mtd->size, but the
+pread/pwrite syscalls bypass this.
+
+I haven't found any codepath on which this actually causes dangerous
+behavior, but it seems like a sensible change anyway.
+
+Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
+Signed-off-by: Jann Horn <jannh@google.com>
+Signed-off-by: Boris Brezillon <boris.brezillon@bootlin.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/mtd/mtdchar.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/mtd/mtdchar.c b/drivers/mtd/mtdchar.c
+index 11c8b468c6d8..000be88d3fb3 100644
+--- a/drivers/mtd/mtdchar.c
++++ b/drivers/mtd/mtdchar.c
+@@ -191,8 +191,12 @@ static ssize_t mtdchar_read(struct file *file, char __user *buf, size_t count,
+ 
+ 	pr_debug("MTD_read\n");
+ 
+-	if (*ppos + count > mtd->size)
+-		count = mtd->size - *ppos;
++	if (*ppos + count > mtd->size) {
++		if (*ppos < mtd->size)
++			count = mtd->size - *ppos;
++		else
++			count = 0;
++	}
+ 
+ 	if (!count)
+ 		return 0;
+@@ -277,7 +281,7 @@ static ssize_t mtdchar_write(struct file *file, const char __user *buf, size_t c
+ 
+ 	pr_debug("MTD_write\n");
+ 
+-	if (*ppos == mtd->size)
++	if (*ppos >= mtd->size)
+ 		return -ENOSPC;
+ 
+ 	if (*ppos + count > mtd->size)
+-- 
+2.18.0
+

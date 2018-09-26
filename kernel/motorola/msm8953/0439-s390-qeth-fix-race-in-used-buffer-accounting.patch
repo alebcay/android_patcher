@@ -1,0 +1,43 @@
+From 92da13ce89e889d4eecb42a66ffaf8b078d70408 Mon Sep 17 00:00:00 2001
+From: Julian Wiedmann <jwi@linux.ibm.com>
+Date: Thu, 19 Jul 2018 12:43:48 +0200
+Subject: [PATCH 439/468] s390/qeth: fix race in used-buffer accounting
+
+[ Upstream commit a702349a4099cd5a7bab0904689d8e0bf8dcd622 ]
+
+By updating q->used_buffers only _after_ do_QDIO() has completed, there
+is a potential race against the buffer's TX completion. In the unlikely
+case that the TX completion path wins, qeth_qdio_output_handler() would
+decrement the counter before qeth_flush_buffers() even incremented it.
+
+Signed-off-by: Julian Wiedmann <jwi@linux.ibm.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/s390/net/qeth_core_main.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/s390/net/qeth_core_main.c b/drivers/s390/net/qeth_core_main.c
+index 906e8014ebb9..595c140cc79c 100644
+--- a/drivers/s390/net/qeth_core_main.c
++++ b/drivers/s390/net/qeth_core_main.c
+@@ -3489,13 +3489,14 @@ static void qeth_flush_buffers(struct qeth_qdio_out_q *queue, int index,
+ 	qdio_flags = QDIO_FLAG_SYNC_OUTPUT;
+ 	if (atomic_read(&queue->set_pci_flags_count))
+ 		qdio_flags |= QDIO_FLAG_PCI_OUT;
++	atomic_add(count, &queue->used_buffers);
++
+ 	rc = do_QDIO(CARD_DDEV(queue->card), qdio_flags,
+ 		     queue->queue_no, index, count);
+ 	if (queue->card->options.performance_stats)
+ 		queue->card->perf_stats.outbound_do_qdio_time +=
+ 			qeth_get_micros() -
+ 			queue->card->perf_stats.outbound_do_qdio_start_time;
+-	atomic_add(count, &queue->used_buffers);
+ 	if (rc) {
+ 		queue->card->stats.tx_errors += count;
+ 		/* ignore temporary SIGA errors without busy condition */
+-- 
+2.18.0
+

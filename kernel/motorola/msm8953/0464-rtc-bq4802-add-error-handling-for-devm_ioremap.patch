@@ -1,0 +1,38 @@
+From c67fe764ae7a011f9aef64024842dd93304d1dc7 Mon Sep 17 00:00:00 2001
+From: Zhouyang Jia <jiazhouyang09@gmail.com>
+Date: Tue, 12 Jun 2018 12:40:03 +0800
+Subject: [PATCH 464/468] rtc: bq4802: add error handling for devm_ioremap
+
+[ Upstream commit 7874b919866ba91bac253fa219d3d4c82bb944df ]
+
+When devm_ioremap fails, the lack of error-handling code may
+cause unexpected results.
+
+This patch adds error-handling code after calling devm_ioremap.
+
+Signed-off-by: Zhouyang Jia <jiazhouyang09@gmail.com>
+Signed-off-by: Alexandre Belloni <alexandre.belloni@bootlin.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/rtc/rtc-bq4802.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/rtc/rtc-bq4802.c b/drivers/rtc/rtc-bq4802.c
+index fc0ff87aa5df..f53198207e93 100644
+--- a/drivers/rtc/rtc-bq4802.c
++++ b/drivers/rtc/rtc-bq4802.c
+@@ -164,6 +164,10 @@ static int bq4802_probe(struct platform_device *pdev)
+ 	} else if (p->r->flags & IORESOURCE_MEM) {
+ 		p->regs = devm_ioremap(&pdev->dev, p->r->start,
+ 					resource_size(p->r));
++		if (!p->regs){
++			err = -ENOMEM;
++			goto out;
++		}
+ 		p->read = bq4802_read_mem;
+ 		p->write = bq4802_write_mem;
+ 	} else {
+-- 
+2.18.0
+

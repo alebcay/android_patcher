@@ -1,0 +1,50 @@
+From 071d2b0e9a4d5879fd90fb18daa1e7e362d48ef7 Mon Sep 17 00:00:00 2001
+From: Nicholas Mc Guire <hofrat@osadl.org>
+Date: Thu, 12 Jul 2018 11:28:23 +0200
+Subject: [PATCH 462/468] ARM: hisi: check of_iomap and fix missing of_node_put
+
+[ Upstream commit 81646a3d39ef14749301374a3a0b8311384cd412 ]
+
+of_find_compatible_node() returns a device node with refcount incremented
+and thus needs an explicit of_node_put(). Further relying on an unchecked
+of_iomap() which can return NULL is problematic here, after all ctrl_base
+is critical enough for hix5hd2_set_cpu() to call BUG() if not available
+so a check seems mandated here.
+
+Signed-off-by: Nicholas Mc Guire <hofrat@osadl.org>
+0002 Fixes: commit 06cc5c1d4d73 ("ARM: hisi: enable hix5hd2 SoC")
+Signed-off-by: Wei Xu <xuwei5@hisilicon.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/arm/mach-hisi/hotplug.c | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/mach-hisi/hotplug.c b/arch/arm/mach-hisi/hotplug.c
+index 6385abcd321e..f31b4d99b5fb 100644
+--- a/arch/arm/mach-hisi/hotplug.c
++++ b/arch/arm/mach-hisi/hotplug.c
+@@ -177,11 +177,15 @@ static bool hix5hd2_hotplug_init(void)
+ 	struct device_node *np;
+ 
+ 	np = of_find_compatible_node(NULL, NULL, "hisilicon,cpuctrl");
+-	if (np) {
+-		ctrl_base = of_iomap(np, 0);
+-		return true;
+-	}
+-	return false;
++	if (!np)
++		return false;
++
++	ctrl_base = of_iomap(np, 0);
++	of_node_put(np);
++	if (!ctrl_base)
++		return false;
++
++	return true;
+ }
+ 
+ void hix5hd2_set_cpu(int cpu, bool enable)
+-- 
+2.18.0
+

@@ -1,0 +1,37 @@
+From 65bcb55f000588e5684bb6be5fe0767060e8050b Mon Sep 17 00:00:00 2001
+From: Zhouyang Jia <jiazhouyang09@gmail.com>
+Date: Thu, 14 Jun 2018 21:37:17 +0800
+Subject: [PATCH 512/591] HID: hid-ntrig: add error handling for
+ sysfs_create_group
+
+[ Upstream commit 44d4d51de9a3534a2b63d69efda02a10e66541e4 ]
+
+When sysfs_create_group fails, the lack of error-handling code may
+cause unexpected results.
+
+This patch adds error-handling code after calling sysfs_create_group.
+
+Signed-off-by: Zhouyang Jia <jiazhouyang09@gmail.com>
+Signed-off-by: Jiri Kosina <jkosina@suse.cz>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/hid/hid-ntrig.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/hid/hid-ntrig.c b/drivers/hid/hid-ntrig.c
+index 756d1ef9bd99..6124fd6e04d1 100644
+--- a/drivers/hid/hid-ntrig.c
++++ b/drivers/hid/hid-ntrig.c
+@@ -955,6 +955,8 @@ static int ntrig_probe(struct hid_device *hdev, const struct hid_device_id *id)
+ 
+ 	ret = sysfs_create_group(&hdev->dev.kobj,
+ 			&ntrig_attribute_group);
++	if (ret)
++		hid_err(hdev, "cannot create sysfs group\n");
+ 
+ 	return 0;
+ err_free:
+-- 
+2.19.1
+

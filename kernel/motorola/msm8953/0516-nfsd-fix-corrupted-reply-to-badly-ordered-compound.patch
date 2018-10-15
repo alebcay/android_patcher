@@ -1,0 +1,36 @@
+From 97f65837366fe7889536c03e110d60e4d50742d6 Mon Sep 17 00:00:00 2001
+From: "J. Bruce Fields" <bfields@redhat.com>
+Date: Wed, 13 Jun 2018 15:21:35 -0400
+Subject: [PATCH 516/591] nfsd: fix corrupted reply to badly ordered compound
+
+[ Upstream commit 5b7b15aee641904ae269be9846610a3950cbd64c ]
+
+We're encoding a single op in the reply but leaving the number of ops
+zero, so the reply makes no sense.
+
+Somewhat academic as this isn't a case any real client will hit, though
+in theory perhaps that could change in a future protocol extension.
+
+Reviewed-by: Jeff Layton <jlayton@kernel.org>
+Signed-off-by: J. Bruce Fields <bfields@redhat.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/nfsd/nfs4proc.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/fs/nfsd/nfs4proc.c b/fs/nfsd/nfs4proc.c
+index f6429b3d89e2..fb0bb5b2bcd8 100644
+--- a/fs/nfsd/nfs4proc.c
++++ b/fs/nfsd/nfs4proc.c
+@@ -1347,6 +1347,7 @@ nfsd4_proc_compound(struct svc_rqst *rqstp,
+ 	if (status) {
+ 		op = &args->ops[0];
+ 		op->status = status;
++		resp->opcnt = 1;
+ 		goto encode_op;
+ 	}
+ 
+-- 
+2.19.1
+

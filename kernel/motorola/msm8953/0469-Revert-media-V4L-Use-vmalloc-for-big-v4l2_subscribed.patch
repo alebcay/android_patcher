@@ -1,0 +1,66 @@
+From e43610622a4225529108c2caf372283aa3801284 Mon Sep 17 00:00:00 2001
+From: Caleb Xu <calebcenter@live.com>
+Date: Mon, 15 Oct 2018 17:29:40 +0000
+Subject: [PATCH 469/591] Revert "[media] V4L: Use vmalloc for big
+ v4l2_subscribed_event buffer"
+
+This reverts commit 49a3e862b637f349e1fe69109a06768448d1bd91.
+---
+ drivers/media/v4l2-core/v4l2-event.c | 13 +++----------
+ 1 file changed, 3 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/media/v4l2-core/v4l2-event.c b/drivers/media/v4l2-core/v4l2-event.c
+index 5fea5f88f5fd..8761aab99de9 100644
+--- a/drivers/media/v4l2-core/v4l2-event.c
++++ b/drivers/media/v4l2-core/v4l2-event.c
+@@ -28,8 +28,6 @@
+ 
+ #include <linux/sched.h>
+ #include <linux/slab.h>
+-#include <linux/mm.h>
+-#include <linux/vmalloc.h>
+ #include <linux/export.h>
+ 
+ static unsigned sev_pos(const struct v4l2_subscribed_event *sev, unsigned idx)
+@@ -211,7 +209,6 @@ int v4l2_event_subscribe(struct v4l2_fh *fh,
+ 	struct v4l2_subscribed_event *sev, *found_ev;
+ 	unsigned long flags;
+ 	unsigned i;
+-	size_t sev_size;
+ 
+ 	if (sub->type == V4L2_EVENT_ALL)
+ 		return -EINVAL;
+@@ -219,11 +216,7 @@ int v4l2_event_subscribe(struct v4l2_fh *fh,
+ 	if (elems < 1)
+ 		elems = 1;
+ 
+-	sev_size = sizeof(*sev) + sizeof(struct v4l2_kevent) * elems;
+-	if (sev_size > PAGE_SIZE)
+-		sev = vzalloc(sev_size);
+-	else
+-		sev = kzalloc(sev_size, GFP_KERNEL);
++	sev = kzalloc(sizeof(*sev) + sizeof(struct v4l2_kevent) * elems, GFP_KERNEL);
+ 	if (!sev)
+ 		return -ENOMEM;
+ 	for (i = 0; i < elems; i++)
+@@ -241,7 +234,7 @@ int v4l2_event_subscribe(struct v4l2_fh *fh,
+ 	spin_unlock_irqrestore(&fh->vdev->fh_lock, flags);
+ 
+ 	if (found_ev) {
+-		kvfree(sev);
++		kfree(sev);
+ 		return 0; /* Already listening */
+ 	}
+ 
+@@ -313,7 +306,7 @@ int v4l2_event_unsubscribe(struct v4l2_fh *fh,
+ 	if (sev && sev->ops && sev->ops->del)
+ 		sev->ops->del(sev);
+ 
+-	kvfree(sev);
++	kfree(sev);
+ 
+ 	return 0;
+ }
+-- 
+2.19.1
+

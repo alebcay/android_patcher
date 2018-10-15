@@ -1,0 +1,42 @@
+From f85c7605b2d5cc8411b51fa408562ef855d59ec6 Mon Sep 17 00:00:00 2001
+From: Zhouyang Jia <jiazhouyang09@gmail.com>
+Date: Mon, 11 Jun 2018 00:39:20 -0400
+Subject: [PATCH 507/591] media: tm6000: add error handling for
+ dvb_register_adapter
+
+[ Upstream commit e95d7c6eb94c634852eaa5ff4caf3db05b5d2e86 ]
+
+When dvb_register_adapter fails, the lack of error-handling code may
+cause unexpected results.
+
+This patch adds error-handling code after calling dvb_register_adapter.
+
+Signed-off-by: Zhouyang Jia <jiazhouyang09@gmail.com>
+[hans.verkuil@cisco.com: use pr_err and fix typo: adater -> adapter]
+Signed-off-by: Hans Verkuil <hans.verkuil@cisco.com>
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/media/usb/tm6000/tm6000-dvb.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/media/usb/tm6000/tm6000-dvb.c b/drivers/media/usb/tm6000/tm6000-dvb.c
+index 095f5db1a790..4f317e2686e9 100644
+--- a/drivers/media/usb/tm6000/tm6000-dvb.c
++++ b/drivers/media/usb/tm6000/tm6000-dvb.c
+@@ -275,6 +275,11 @@ static int register_dvb(struct tm6000_core *dev)
+ 
+ 	ret = dvb_register_adapter(&dvb->adapter, "Trident TVMaster 6000 DVB-T",
+ 					THIS_MODULE, &dev->udev->dev, adapter_nr);
++	if (ret < 0) {
++		pr_err("tm6000: couldn't register the adapter!\n");
++		goto err;
++	}
++
+ 	dvb->adapter.priv = dev;
+ 
+ 	if (dvb->frontend) {
+-- 
+2.19.1
+

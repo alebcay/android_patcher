@@ -1,0 +1,46 @@
+From 4d6513273bd71ad27c53908e42c4154dcdc5a1cd Mon Sep 17 00:00:00 2001
+From: Roderick Colenbrander <roderick.colenbrander@sony.com>
+Date: Wed, 23 Nov 2016 14:07:11 -0800
+Subject: [PATCH 488/591] HID: sony: Support DS4 dongle
+
+commit de66a1a04c25f2560a8dca7a95e2a150b0d5e17e upstream.
+
+Add support for USB based DS4 dongle device, which allows connecting
+a DS4 through Bluetooth, but hides Bluetooth from the host system.
+
+Signed-off-by: Roderick Colenbrander <roderick.colenbrander@sony.com>
+Signed-off-by: Jiri Kosina <jkosina@suse.cz>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/hid/hid-ids.h  | 1 +
+ drivers/hid/hid-sony.c | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/drivers/hid/hid-ids.h b/drivers/hid/hid-ids.h
+index e70f33b55f6a..b6500c3d374f 100644
+--- a/drivers/hid/hid-ids.h
++++ b/drivers/hid/hid-ids.h
+@@ -847,6 +847,7 @@
+ #define USB_DEVICE_ID_SONY_PS3_CONTROLLER	0x0268
+ #define USB_DEVICE_ID_SONY_PS4_CONTROLLER	0x05c4
+ #define USB_DEVICE_ID_SONY_PS4_CONTROLLER_2	0x09cc
++#define USB_DEVICE_ID_SONY_PS4_CONTROLLER_DONGLE	0x0ba0
+ #define USB_DEVICE_ID_SONY_NAVIGATION_CONTROLLER	0x042f
+ #define USB_DEVICE_ID_SONY_BUZZ_CONTROLLER		0x0002
+ #define USB_DEVICE_ID_SONY_WIRELESS_BUZZ_CONTROLLER	0x1000
+diff --git a/drivers/hid/hid-sony.c b/drivers/hid/hid-sony.c
+index a79cc03ec72b..e9af6dd6ddb5 100644
+--- a/drivers/hid/hid-sony.c
++++ b/drivers/hid/hid-sony.c
+@@ -2053,6 +2053,8 @@ static const struct hid_device_id sony_devices[] = {
+ 		.driver_data = DUALSHOCK4_CONTROLLER_USB },
+ 	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_SONY, USB_DEVICE_ID_SONY_PS4_CONTROLLER_2),
+ 		.driver_data = DUALSHOCK4_CONTROLLER_BT },
++	{ HID_USB_DEVICE(USB_VENDOR_ID_SONY, USB_DEVICE_ID_SONY_PS4_CONTROLLER_DONGLE),
++		.driver_data = DUALSHOCK4_CONTROLLER_USB },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(hid, sony_devices);
+-- 
+2.19.1
+

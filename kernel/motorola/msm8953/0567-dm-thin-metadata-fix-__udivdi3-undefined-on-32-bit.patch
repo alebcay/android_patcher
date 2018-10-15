@@ -1,0 +1,38 @@
+From 6bb23e72d64f75065adf9675321d58ac67d887da Mon Sep 17 00:00:00 2001
+From: Mike Snitzer <snitzer@redhat.com>
+Date: Thu, 13 Sep 2018 21:16:20 -0400
+Subject: [PATCH 567/591] dm thin metadata: fix __udivdi3 undefined on 32-bit
+
+commit 013ad043906b2befd4a9bfb06219ed9fedd92716 upstream.
+
+sector_div() is only viable for use with sector_t.
+dm_block_t is typedef'd to uint64_t -- so use div_u64() instead.
+
+Fixes: 3ab918281 ("dm thin metadata: try to avoid ever aborting transactions")
+Signed-off-by: Mike Snitzer <snitzer@redhat.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/md/dm-thin-metadata.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/md/dm-thin-metadata.c b/drivers/md/dm-thin-metadata.c
+index 096de9433da2..d8eb8655925b 100644
+--- a/drivers/md/dm-thin-metadata.c
++++ b/drivers/md/dm-thin-metadata.c
+@@ -840,10 +840,8 @@ static void __set_metadata_reserve(struct dm_pool_metadata *pmd)
+ 	if (r) {
+ 		DMERR("could not get size of metadata device");
+ 		pmd->metadata_reserve = max_blocks;
+-	} else {
+-		sector_div(total, 10);
+-		pmd->metadata_reserve = min(max_blocks, total);
+-	}
++	} else
++		pmd->metadata_reserve = min(max_blocks, div_u64(total, 10));
+ }
+ 
+ struct dm_pool_metadata *dm_pool_metadata_open(struct block_device *bdev,
+-- 
+2.19.1
+

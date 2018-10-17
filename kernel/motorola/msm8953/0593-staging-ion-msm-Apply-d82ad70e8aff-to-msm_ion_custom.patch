@@ -1,0 +1,73 @@
+From 87a5a518ad5d84114b34ca26a077b234eac0be89 Mon Sep 17 00:00:00 2001
+From: Nathan Chancellor <natechancellor@gmail.com>
+Date: Fri, 31 Aug 2018 19:15:38 -0700
+Subject: [PATCH 593/596] staging: ion: msm: Apply d82ad70e8aff to
+ msm_ion_custom_ioctl
+
+Commit d82ad70e8aff ("staging: android: ion: fix ION_IOC_{MAP,SHARE}
+use-after-free") removed the definition of ion_handle_get_by_id,
+replacing it with a lockless version. Update msm_ion_custom_ioctl with
+this same definition and scheme.
+
+Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+---
+ drivers/staging/android/ion/ion.c         | 4 ++--
+ drivers/staging/android/ion/ion_priv.h    | 4 ++--
+ drivers/staging/android/ion/msm/msm_ion.c | 5 ++++-
+ 3 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/staging/android/ion/ion.c b/drivers/staging/android/ion/ion.c
+index e49f3baa0b5a..348aadd6ddc9 100755
+--- a/drivers/staging/android/ion/ion.c
++++ b/drivers/staging/android/ion/ion.c
+@@ -429,8 +429,8 @@ static struct ion_handle *ion_handle_lookup(struct ion_client *client,
+ 	return ERR_PTR(-EINVAL);
+ }
+ 
+-static struct ion_handle *ion_handle_get_by_id_nolock(struct ion_client *client,
+-						int id)
++struct ion_handle *ion_handle_get_by_id_nolock(struct ion_client *client,
++					       int id)
+ {
+ 	struct ion_handle *handle;
+ 
+diff --git a/drivers/staging/android/ion/ion_priv.h b/drivers/staging/android/ion/ion_priv.h
+index ddc0a9824689..54e2ec51444e 100644
+--- a/drivers/staging/android/ion/ion_priv.h
++++ b/drivers/staging/android/ion/ion_priv.h
+@@ -583,8 +583,8 @@ int ion_walk_heaps(struct ion_client *client, int heap_id,
+ 			enum ion_heap_type type, void *data,
+ 			int (*f)(struct ion_heap *heap, void *data));
+ 
+-struct ion_handle *ion_handle_get_by_id(struct ion_client *client,
+-					int id);
++struct ion_handle *ion_handle_get_by_id_nolock(struct ion_client *client,
++					       int id);
+ 
+ int ion_handle_put(struct ion_handle *handle);
+ 
+diff --git a/drivers/staging/android/ion/msm/msm_ion.c b/drivers/staging/android/ion/msm/msm_ion.c
+index d610c2349e48..6c7930bb4c65 100644
+--- a/drivers/staging/android/ion/msm/msm_ion.c
++++ b/drivers/staging/android/ion/msm/msm_ion.c
+@@ -695,13 +695,16 @@ long msm_ion_custom_ioctl(struct ion_client *client,
+ 		struct mm_struct *mm = current->active_mm;
+ 
+ 		if (data.flush_data.handle > 0) {
+-			handle = ion_handle_get_by_id(client,
++			mutex_lock(&client->lock);
++			handle = ion_handle_get_by_id_nolock(client,
+ 						(int)data.flush_data.handle);
+ 			if (IS_ERR(handle)) {
++				mutex_unlock(&client->lock);
+ 				pr_info("%s: Could not find handle: %d\n",
+ 					__func__, (int)data.flush_data.handle);
+ 				return PTR_ERR(handle);
+ 			}
++			mutex_unlock(&client->lock);
+ 		} else {
+ 			handle = ion_import_dma_buf(client, data.flush_data.fd);
+ 			if (IS_ERR(handle)) {
+-- 
+2.19.1
+

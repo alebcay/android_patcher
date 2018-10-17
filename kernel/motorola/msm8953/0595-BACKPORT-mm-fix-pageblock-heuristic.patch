@@ -1,0 +1,118 @@
+From bda60c9f3a9b337219c95ae62e14540bfe9c94f5 Mon Sep 17 00:00:00 2001
+From: Tim Murray <timmurray@google.com>
+Date: Wed, 3 Aug 2016 18:27:46 -0700
+Subject: [PATCH 595/596] BACKPORT: mm: fix pageblock heuristic
+
+The Android-tuned page block heuristic was accidentally reset in an AU
+drop. Fix the heuristic to avoid unnecessary unmovable pageblock
+migration over time.
+
+bug 30643938
+Bug: 63336523
+(cherry-picked from commit 3e19bcf7d08713daaaba888b4d13502e06e38e96)
+Change-Id: I59efcd3934f29982b1c9aeb7b0f18eb17e0934b3
+Signed-off-by: John Dias <joaodias@google.com>
+---
+ mm/compaction.c |  2 +-
+ mm/internal.h   |  6 +++---
+ mm/page_alloc.c | 23 +++++++++++++++--------
+ 3 files changed, 19 insertions(+), 12 deletions(-)
+
+diff --git a/mm/compaction.c b/mm/compaction.c
+index ebc06c69cecb..d2c22d81299f 100644
+--- a/mm/compaction.c
++++ b/mm/compaction.c
+@@ -1184,7 +1184,7 @@ static int compact_finished(struct zone *zone, struct compact_control *cc,
+ 		 * other migratetype buddy lists.
+ 		 */
+ 		if (find_suitable_fallback(area, order, migratetype,
+-						true, &can_steal) != -1)
++					   true, cc->order, &can_steal) != -1)
+ 			return COMPACT_PARTIAL;
+ 	}
+ 
+diff --git a/mm/internal.h b/mm/internal.h
+index 3cd7936b776a..c6fe1df9edec 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -187,9 +187,9 @@ isolate_freepages_range(struct compact_control *cc,
+ unsigned long
+ isolate_migratepages_range(struct compact_control *cc,
+ 			   unsigned long low_pfn, unsigned long end_pfn);
+-int find_suitable_fallback(struct free_area *area, unsigned int order,
+-			int migratetype, bool only_stealable, bool *can_steal);
+-
++int find_suitable_fallback(struct free_area *area, unsigned int current_order,
++			   int migratetype, bool only_stealable,
++			   int start_order, bool *can_steal);
+ #endif
+ 
+ /*
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index dc77aea1e06f..359a2123eaa4 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -1156,7 +1156,8 @@ static void change_pageblock_range(struct page *pageblock_page,
+  * is worse than movable allocations stealing from unmovable and reclaimable
+  * pageblocks.
+  */
+-static bool can_steal_fallback(unsigned int order, int start_mt)
++static bool can_steal_fallback(unsigned int current_order, unsigned int start_order,
++			       int start_mt, int fallback_mt)
+ {
+ 	/*
+ 	 * Leaving this order check is intended, although there is
+@@ -1165,12 +1166,17 @@ static bool can_steal_fallback(unsigned int order, int start_mt)
+ 	 * but, below check doesn't guarantee it and that is just heuristic
+ 	 * so could be changed anytime.
+ 	 */
+-	if (order >= pageblock_order)
++	if (current_order >= pageblock_order)
+ 		return true;
+ 
+-	if (order >= pageblock_order / 2 ||
++	/* don't let unmovable allocations cause migrations simply because of free pages */
++	if ((start_mt != MIGRATE_UNMOVABLE && current_order >= pageblock_order / 2) ||
++	        /* only steal reclaimable page blocks for unmovable allocations */
++	        (start_mt == MIGRATE_UNMOVABLE && fallback_mt != MIGRATE_MOVABLE && current_order >= pageblock_order / 2) ||
++	        /* reclaimable can steal aggressively */
+ 		start_mt == MIGRATE_RECLAIMABLE ||
+-		start_mt == MIGRATE_UNMOVABLE ||
++		/* allow unmovable allocs up to 64K without migrating blocks */
++		(start_mt == MIGRATE_UNMOVABLE && start_order >= 5) ||
+ 		page_group_by_mobility_disabled)
+ 		return true;
+ 
+@@ -1210,8 +1216,9 @@ static void steal_suitable_fallback(struct zone *zone, struct page *page,
+  * we can steal other freepages all together. This would help to reduce
+  * fragmentation due to mixed migratetype pages in one pageblock.
+  */
+-int find_suitable_fallback(struct free_area *area, unsigned int order,
+-			int migratetype, bool only_stealable, bool *can_steal)
++int find_suitable_fallback(struct free_area *area, unsigned int current_order,
++			   int migratetype, bool only_stealable,
++			   int start_order, bool *can_steal)
+ {
+ 	int i;
+ 	int fallback_mt;
+@@ -1228,7 +1235,7 @@ int find_suitable_fallback(struct free_area *area, unsigned int order,
+ 		if (list_empty(&area->free_list[fallback_mt]))
+ 			continue;
+ 
+-		if (can_steal_fallback(order, migratetype))
++		if (can_steal_fallback(current_order, start_order, migratetype, fallback_mt))
+ 			*can_steal = true;
+ 
+ 		if (!only_stealable)
+@@ -1257,7 +1264,7 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
+ 				--current_order) {
+ 		area = &(zone->free_area[current_order]);
+ 		fallback_mt = find_suitable_fallback(area, current_order,
+-				start_migratetype, false, &can_steal);
++				start_migratetype, false, order, &can_steal);
+ 		if (fallback_mt == -1)
+ 			continue;
+ 
+-- 
+2.19.1
+
